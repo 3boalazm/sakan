@@ -93,5 +93,35 @@ WHEN OLD.state <> NEW.state AND NOT EXISTS (
 BEGIN SELECT RAISE(ABORT,'invalid decision transition'); END;
 `);
 
+// ---- Hardening additions (audit log, immutability, force-reveal storage) ----
+db.exec(`
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY, pair_id TEXT NOT NULL,
+  entity TEXT NOT NULL, entity_id TEXT NOT NULL, type TEXT NOT NULL,
+  from_state TEXT, to_state TEXT, actor TEXT, meta TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS idx_events ON events(pair_id, entity, entity_id, id);
+
+-- a confirmed Decision is immutable (content cannot change; cannot be deleted)
+CREATE TRIGGER IF NOT EXISTS lock_confirmed_decision BEFORE UPDATE ON decisions
+WHEN OLD.state='confirmed' AND (NEW.statement<>OLD.statement OR IFNULL(NEW.action,'')<>IFNULL(OLD.action,''))
+BEGIN SELECT RAISE(ABORT,'decision immutable after confirmed'); END;
+
+CREATE TRIGGER IF NOT EXISTS no_delete_confirmed_decision BEFORE DELETE ON decisions
+WHEN OLD.state='confirmed'
+BEGIN SELECT RAISE(ABORT,'cannot delete confirmed decision'); END;
+`);
+
+// additive column migrations (safe to re-run; works on existing DBs)
+function addColumn(table, col, decl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
+}
+addColumn('questions', 'reveal_by', 'TEXT');          // who triggered a force-reveal
+addColumn('decisions', 'idempotency_key', 'TEXT');     // dedupe duplicate creation
+db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_decision_idem
+         ON decisions(pair_id, idempotency_key) WHERE idempotency_key IS NOT NULL;`);
+
 export const uid = () => globalThis.crypto.randomUUID();
 export const code8 = () => uid().replace(/-/g, '').slice(0, 8).toUpperCase();

@@ -25,11 +25,15 @@ add('POST', '/resources/([^/]+)/questions/generate', (c) => S.generateQuestionsF
 add('POST', '/resources/([^/]+)/questions', (c) => S.addQuestion(c.session, c.params[0], c.body.text));
 
 add('GET', '/questions/([^/]+)/responses', (c) => S.getResponses(c.session, c.params[0]));
+add('GET', '/questions/([^/]+)/events', (c) => S.questionEvents(c.session, c.params[0]));
 add('PUT', '/questions/([^/]+)/responses', (c) => S.submitResponse(c.session, c.params[0], c.body.text));
 add('POST', '/questions/([^/]+)/reveal', (c) => S.reveal(c.session, c.params[0]));
 add('POST', '/questions/([^/]+)/force-reveal', (c) => S.forceReveal(c.session, c.params[0]));
 
+add('GET', '/resources/([^/]+)/events', (c) => S.resourceEvents(c.session, c.params[0]));
+
 add('GET', '/decisions', (c) => S.listDecisions(c.session));
+add('GET', '/decisions/([^/]+)', (c) => S.getDecision(c.session, c.params[0]));
 add('POST', '/decisions', (c) => S.createDecision(c.session, c.body));
 add('POST', '/decisions/([^/]+)/confirm', (c) => S.confirmDecision(c.session, c.params[0]));
 
