@@ -178,6 +178,13 @@
     return m[e.code] || ("حدث خطأ: "+(e.code||"غير معروف"));
   }
   function save(){ if(S.token) localStorage.setItem("sakan_token",S.token); if(S.code) localStorage.setItem("sakan_code",S.code); if(S.name) localStorage.setItem("sakan_name",S.name); }
+  function titleFromUrl(u){
+    try{
+      const m = u.match(/[?&]list=([\w-]+)/); if(m) return "قائمة تشغيل · "+m[1].slice(0,8);
+      const v = u.match(/(?:youtu\.be\/|[?&]v=)([\w-]{6,})/); if(v) return "فيديو · "+v[1];
+    }catch(e){}
+    return u.length>44 ? u.slice(0,44)+"…" : u;
+  }
   function logout(){ localStorage.removeItem("sakan_token"); localStorage.removeItem("sakan_code"); localStorage.removeItem("sakan_name"); S.token=S.code=S.name=null; S.view="onboarding"; render(); }
 
   // ---------- header ----------
@@ -233,6 +240,13 @@
   async function renderLibrary(){
     S.view="library"; S.resourceId=null;
     el.innerHTML = `<h1 class="display">المكتبة</h1><p class="lede">كل ما تعملان عليه معًا، في مكانٍ واحد.</p><div id="list"><div class="empty">…تحميل</div></div>
+      <div class="card">
+        <div class="eyebrow">استيراد سريع</div>
+        <h2>أضِف عدة روابط دفعة واحدة</h2>
+        <p class="muted" style="margin-top:-6px">الصق الروابط — رابط في كل سطر (يوتيوب، قوائم تشغيل، أي رابط).</p>
+        <div class="row"><textarea id="bulk" placeholder="https://...&#10;https://...&#10;https://..." style="min-height:130px"></textarea></div>
+        <button class="btn" data-act="importBulk">استورد الكل</button>
+      </div>
       <div class="card">
         <div class="eyebrow">إضافة</div>
         <h2>أضِف موردًا</h2>
@@ -391,6 +405,16 @@
         const sourceText=(document.getElementById("rText").value||"").trim();
         await api("POST","/resources",{ title, link:link||null, sourceText:sourceText||null });
         toast("أُضيف المورد"); renderLibrary(); return;
+      }
+      if(act==="importBulk"){
+        const lines=(document.getElementById("bulk").value||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+        if(!lines.length) return toast("الصق رابطًا واحدًا على الأقل");
+        node.disabled=true; const orig=node.textContent;
+        let ok=0;
+        for(const link of lines){ node.textContent="…"+(ok+1)+"/"+lines.length; try{ await api("POST","/resources",{ title:titleFromUrl(link), link }); ok++; }catch(e){} }
+        node.disabled=false; node.textContent=orig;
+        toast("تم استيراد "+ok+" من "+lines.length+" — تقدر تعيد تسميتها لاحقًا");
+        renderLibrary(); return;
       }
       if(act==="open" || node?.dataset.open){ S.resourceId=node.dataset.open; S.view="resource"; S.tab="summary"; render(); return; }
 
