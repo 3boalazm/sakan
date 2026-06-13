@@ -1,9 +1,9 @@
 import { DatabaseSync } from 'node:sqlite';
 
-// In production this is Postgres + RLS (see Full Database Schema doc). For the
-// runnable slice we use built-in SQLite; pair-scoping is enforced in the data
-// layer, and the state machine is enforced by the validator triggers below.
-export const db = new DatabaseSync(process.env.SAKAN_DB || ':memory:');
+// Built-in SQLite — no native dependency, no build step. For a private 2-person
+// app this runs fine on any always-on Node host. IMPORTANT: point SAKAN_DB at a
+// file on a PERSISTENT disk (e.g. /data/sakan.db), or data resets on redeploy.
+export const db = new DatabaseSync(process.env.SAKAN_DB || 'sakan.db');
 db.exec('PRAGMA foreign_keys = ON;');
 
 db.exec(`

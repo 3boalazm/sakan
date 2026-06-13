@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Sakan — private 2-person alignment system (J1 backend slice)",
+  "description": "Sakan — private 2-person alignment system (J1 backend, deploy build)",
+  "engines": { "node": ">=22.5" },
   "scripts": {
-    "start": "SAKAN_DB=sakan.db node src/server.js",
-    "test": "node test/j1.mjs"
+    "start": "node --experimental-sqlite src/server.js",
+    "test": "node --experimental-sqlite test/j1.mjs && node --experimental-sqlite test/harden.mjs"
   }
 }

@@ -56,7 +56,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 export function start(port = 0) {
-  return new Promise((resolve) => server.listen(port, '127.0.0.1', () => resolve(server)));
+  return new Promise((resolve) => server.listen(port, '0.0.0.0', () => resolve(server)));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
