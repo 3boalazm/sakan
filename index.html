@@ -6,7 +6,7 @@
 <title>سكن</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;600;700&family=Readex+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=Readex+Pro:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#EEF1ED; --surface:#FFFFFF; --ink:#26302B; --muted:#7C857E;
@@ -261,8 +261,11 @@
       if(!items.length){ list.innerHTML = `<div class="empty">لا توجد موارد بعد. أضِف أول مورد بالأسفل لتبدآ.</div>`; return; }
       list.innerHTML = items.map(r=>`
         <div class="card res" data-open="${esc(r.id)}">
-          <div><h2>${esc(r.title)}</h2><div class="meta">${r.link?esc(r.link):"بدون رابط"}</div></div>
-          <span class="pill dot ${r.status==='completed'?'':'warn'}">${STATE_AR[r.status]||esc(r.status)}</span>
+          <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
+            ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : "" }
+            <div style="min-width:0"><h2 style="margin:0">${esc(r.title)}</h2><div class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.link?esc(r.link):"بدون رابط"}</div></div>
+          </div>
+          <span class="pill dot ${r.status==='completed'?'':'warn'}" style="flex:none">${STATE_AR[r.status]||esc(r.status)}</span>
         </div>`).join("");
     }catch(e){ document.getElementById("list").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
   }
@@ -410,8 +413,9 @@
         const lines=(document.getElementById("bulk").value||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
         if(!lines.length) return toast("الصق رابطًا واحدًا على الأقل");
         node.disabled=true; const orig=node.textContent;
-        let ok=0;
-        for(const link of lines){ node.textContent="…"+(ok+1)+"/"+lines.length; try{ await api("POST","/resources",{ title:titleFromUrl(link), link }); ok++; }catch(e){} }
+        const q=lines.slice(); let done=0, ok=0;
+        async function worker(){ while(q.length){ const link=q.shift(); try{ await api("POST","/resources",{ title:titleFromUrl(link), link }); ok++; }catch(e){} done++; node.textContent="…"+done+"/"+lines.length; } }
+        await Promise.all(Array.from({length:Math.min(4,lines.length)}, worker));   // 4 at a time → أسرع بكتير
         node.disabled=false; node.textContent=orig;
         toast("تم استيراد "+ok+" من "+lines.length+" — تقدر تعيد تسميتها لاحقًا");
         renderLibrary(); return;
