@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { handle } from './lib/handler.js';
 import { envPresent } from './lib/firebase.js';
+import { PAGE } from './lib/page.js';
 
 console.log('SERVER STARTED');
 console.log('ENV CHECK FIREBASE_SERVICE_ACCOUNT:', envPresent());
@@ -16,8 +17,17 @@ const readBody = (req) => new Promise((resolve) => {
 });
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); } // CORS preflight
+  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); return res.end(); }
   const url = new URL(req.url, 'http://x');
+
+  // serve the Arabic app for any non-API GET request (so the domain shows the UI, not JSON)
+  if (req.method === 'GET' && !url.pathname.startsWith('/api')) {
+    if (url.pathname === '/favicon.ico') { res.writeHead(204, CORS); return res.end(); }
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...CORS });
+    return res.end(PAGE);
+  }
+
+  // API (health is at /api ; pair/resources/... under /api/*)
   const path = url.pathname.replace(/^\/api(?=\/|$)/, '').split('/').filter(Boolean);
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || null;
   const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req) : {};
@@ -27,4 +37,4 @@ const server = http.createServer(async (req, res) => {
 });
 
 const port = Number(process.env.PORT) || 8787;
-server.listen(port, '0.0.0.0', () => console.log('Sakan API on :' + port));
+server.listen(port, '0.0.0.0', () => console.log('Sakan on :' + port));
