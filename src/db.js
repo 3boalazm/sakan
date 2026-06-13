@@ -1,0 +1,97 @@
+import { DatabaseSync } from 'node:sqlite';
+
+// In production this is Postgres + RLS (see Full Database Schema doc). For the
+// runnable slice we use built-in SQLite; pair-scoping is enforced in the data
+// layer, and the state machine is enforced by the validator triggers below.
+export const db = new DatabaseSync(process.env.SAKAN_DB || ':memory:');
+db.exec('PRAGMA foreign_keys = ON;');
+
+db.exec(`
+CREATE TABLE IF NOT EXISTS pairs (
+  id TEXT PRIMARY KEY, user_a TEXT NOT NULL, user_b TEXT,
+  code TEXT UNIQUE, status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY, email TEXT NOT NULL,
+  pair_id TEXT NOT NULL REFERENCES pairs(id), display_name TEXT
+);
+CREATE TABLE IF NOT EXISTS resources (
+  id TEXT PRIMARY KEY, pair_id TEXT NOT NULL, title TEXT NOT NULL,
+  type TEXT, stage TEXT, link TEXT, source_text TEXT,
+  status TEXT NOT NULL DEFAULT 'not_started', created_by TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS summaries (
+  id TEXT PRIMARY KEY, pair_id TEXT NOT NULL,
+  resource_id TEXT NOT NULL UNIQUE REFERENCES resources(id),
+  content TEXT NOT NULL, generated_by TEXT NOT NULL DEFAULT 'ai'
+);
+CREATE TABLE IF NOT EXISTS questions (
+  id TEXT PRIMARY KEY, pair_id TEXT NOT NULL,
+  resource_id TEXT NOT NULL REFERENCES resources(id),
+  text TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'open',
+  first_response_at TEXT, reveal_method TEXT
+);
+CREATE TABLE IF NOT EXISTS responses (
+  id TEXT PRIMARY KEY, pair_id TEXT NOT NULL,
+  question_id TEXT NOT NULL REFERENCES questions(id),
+  user_id TEXT NOT NULL, text TEXT NOT NULL,
+  UNIQUE(question_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS decisions (
+  id TEXT PRIMARY KEY, pair_id TEXT NOT NULL,
+  resource_id TEXT NOT NULL REFERENCES resources(id),
+  statement TEXT NOT NULL, action TEXT,
+  state TEXT NOT NULL DEFAULT 'draft', created_by TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS decision_questions (
+  decision_id TEXT NOT NULL REFERENCES decisions(id),
+  question_id TEXT NOT NULL REFERENCES questions(id),
+  pair_id TEXT NOT NULL, PRIMARY KEY (decision_id, question_id)
+);
+CREATE TABLE IF NOT EXISTS decision_confirmations (
+  decision_id TEXT NOT NULL REFERENCES decisions(id),
+  user_id TEXT NOT NULL, pair_id TEXT NOT NULL,
+  PRIMARY KEY (decision_id, user_id)
+);
+CREATE TABLE IF NOT EXISTS state_transitions (
+  entity TEXT, from_state TEXT, to_state TEXT,
+  PRIMARY KEY (entity, from_state, to_state)
+);
+`);
+
+// The state machine's single source of truth (allow-list).
+const T = [
+  ['resource','not_started','in_progress'], ['resource','in_progress','completed'],
+  ['resource','completed','in_progress'],
+  ['question','open','answered_by_one'], ['question','answered_by_one','ready_to_reveal'],
+  ['question','answered_by_one','revealed'], ['question','ready_to_reveal','revealed'],
+  ['question','revealed','decided'], ['question','decided','revealed'],
+  ['decision','draft','confirmed'], ['decision','confirmed','revisited'],
+  ['decision','revisited','confirmed'],
+];
+const ins = db.prepare('INSERT OR IGNORE INTO state_transitions VALUES (?,?,?)');
+for (const t of T) ins.run(...t);
+
+// Validator triggers: ANY illegal state change is rejected, from any code path.
+db.exec(`
+CREATE TRIGGER IF NOT EXISTS guard_resource BEFORE UPDATE OF status ON resources
+WHEN OLD.status <> NEW.status AND NOT EXISTS (
+  SELECT 1 FROM state_transitions WHERE entity='resource' AND from_state=OLD.status AND to_state=NEW.status)
+BEGIN SELECT RAISE(ABORT,'invalid resource transition'); END;
+
+CREATE TRIGGER IF NOT EXISTS guard_question BEFORE UPDATE OF state ON questions
+WHEN OLD.state <> NEW.state AND NOT EXISTS (
+  SELECT 1 FROM state_transitions WHERE entity='question' AND from_state=OLD.state AND to_state=NEW.state)
+BEGIN SELECT RAISE(ABORT,'invalid question transition'); END;
+
+CREATE TRIGGER IF NOT EXISTS guard_decision BEFORE UPDATE OF state ON decisions
+WHEN OLD.state <> NEW.state AND NOT EXISTS (
+  SELECT 1 FROM state_transitions WHERE entity='decision' AND from_state=OLD.state AND to_state=NEW.state)
+BEGIN SELECT RAISE(ABORT,'invalid decision transition'); END;
+`);
+
+export const uid = () => globalThis.crypto.randomUUID();
+export const code8 = () => uid().replace(/-/g, '').slice(0, 8).toUpperCase();

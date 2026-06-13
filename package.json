@@ -1,0 +1,11 @@
+{
+  "name": "sakan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sakan — private 2-person alignment system (J1 backend slice)",
+  "scripts": {
+    "start": "SAKAN_DB=sakan.db node src/server.js",
+    "test": "node test/j1.mjs"
+  }
+}
