@@ -1,3 +1,4 @@
+console.log("FIREBASE CHECK:", process.env.FIREBASE_SERVICE_ACCOUNT ? "YES" : "NO");
 import http from 'node:http';
 import { handle } from './lib/handler.js';
 import { envPresent } from './lib/firebase.js';
