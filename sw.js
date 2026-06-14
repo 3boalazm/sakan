@@ -1,9 +1,9 @@
 // سكن — Service Worker
 // نسخة: 1.0.0  |  تاريخ البناء: يُحدَّث تلقائيًا
 
-const CACHE_NAME    = 'sakan-v2';
-const STATIC_CACHE  = 'sakan-static-v2';
-const DYNAMIC_CACHE = 'sakan-dynamic-v2';
+const CACHE_NAME    = 'sakan-v3';
+const STATIC_CACHE  = 'sakan-static-v3';
+const DYNAMIC_CACHE = 'sakan-dynamic-v3';
 
 // ملفات الشل — تُخزَّن دائمًا
 const SHELL_FILES = [
@@ -59,6 +59,10 @@ self.addEventListener('activate', (event) => {
 // ===================== Fetch =====================
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // الكاش بيدعم GET بس — أي POST/PUT/DELETE يعدّي للشبكة من غير اعتراض
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
 
   // API calls → Network first, no cache
