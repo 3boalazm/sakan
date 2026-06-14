@@ -1,0 +1,50 @@
+{
+  "packageId": "app.sakan.md",
+  "host": "sakan-md.vercel.app",
+  "name": "سكن",
+  "launcherName": "سكن",
+  "display": "standalone",
+  "themeColor": "#1e3a2f",
+  "navigationColor": "#1e3a2f",
+  "navigationColorDark": "#0d1f18",
+  "navigationDividerColor": "#c9a14a",
+  "navigationDividerColorDark": "#c9a14a",
+  "backgroundColor": "#1e3a2f",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://sakan-md.vercel.app/icons/icon-512x512.png",
+  "maskableIconUrl": "https://sakan-md.vercel.app/icons/icon-maskable-512x512.png",
+  "monochromeIconUrl": "https://sakan-md.vercel.app/icons/icon-512x512.png",
+  "shortcuts": [],
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "sakan"
+  },
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://sakan-md.vercel.app/manifest.json",
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://sakan-md.vercel.app/",
+  "minSdkVersion": 19,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "enableSiteSettingsShortcut": true,
+  "isSplashEnabled": true,
+  "splashScreenFadeOutDuration": 300,
+  "generatedVersion": "1.12.2",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSidecar": false,
+  "serviceWorker": {
+    "strategy": "default"
+  }
+}

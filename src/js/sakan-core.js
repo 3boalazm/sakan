@@ -105,7 +105,7 @@
     { title:"رحلتنا", items:[["journeys","قوائمنا","▶️"],["library","المكتبة","📚"],["myjourney","رحلتي","🌿"]] },
     { title:"الحوار والقرار", items:[["discussions","المناقشات","💬"],["decisionlog","القرارات","✅"],["charter","ميثاقنا","📜"]] },
     { title:"حياتنا", items:[["connect","تواصلنا","💞"],["quicknotes","مفكّرتنا","📝"],["tasks","المهام","🗒️"],["budget","الميزانية","💰"],["shopping","المشتريات","🛒"]] },
-    { title:"الإعدادات", items:[["settings","الإعدادات","⚙️"],["downloadApk","تحميل التطبيق","📲"],["logout","خروج","↩️"]] },
+    { title:"الإعدادات", items:[["settings","الإعدادات","⚙️"],["logout","خروج","↩️"]] },
   ];
   function renderDrawer(){
     const d = document.getElementById("drawer"); if(!d) return;
@@ -114,9 +114,7 @@
     let html = `<div class="dw-head"><div class="dw-brand">سكن</div><button class="dw-x" data-dw="close" aria-label="إغلاق">✕</button></div>`;
     if(S.code) html += `<div class="dw-code">كود الميثاق: <b>${esc(S.code)}</b></div>`;
     html += NAVSECS.map(sec=>{
-      const APK_URL = "https://github.com/3boalazm/sakan/releases/latest/download/app-debug.apk";
       const links = sec.items.map(([act,label,ico])=>{
-        if(act==="downloadApk") return `<button class="dw-link" data-act="downloadApk" style="display:flex;align-items:center;gap:12px;padding:13px 14px;margin:3px 0;border-radius:13px;color:#f4ecd6;font-size:16px;font-weight:600;background:linear-gradient(135deg,rgba(201,161,74,.18),rgba(42,122,95,.12));border:1px solid rgba(201,161,74,.3);width:100%;text-align:start;cursor:pointer"><span class="dw-ico" style="background:linear-gradient(135deg,#c9a14a,#1f5e4b)">${ico}</span><span>${label}</span><span style="margin-inline-start:auto;font-size:11px;color:#e6c97a;font-weight:700;letter-spacing:.5px">APK</span></button>`;
         return `<button class="dw-link ${act===cur?'active':''}" data-act="${act}"><span class="dw-ico">${ico}</span><span>${label}</span></button>`;
       }).join("");
       if(!sec.title) return `<div class="dw-group">${links}</div>`;
