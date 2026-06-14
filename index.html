@@ -74,6 +74,10 @@
   [data-theme="dark"] .namecal,[data-theme="oled"] .namecal{color:#fff}
   .namecal .namefallback{font-family:'ThmanyahSerifDisplay','ThmanyahSans',serif; font-size:36px; font-weight:700; color:var(--primary-ink); line-height:1.2}
   @media(max-width:560px){ .namecal svg{height:56px} .namecal .namefallback{font-size:30px} }
+  .brandcal{display:inline-flex; align-items:center; vertical-align:middle; margin-inline-start:9px; color:#00104a}
+  .brandcal svg{height:22px; width:auto}
+  [data-theme="dark"] .brandcal,[data-theme="oled"] .brandcal{color:#fff}
+  @media(max-width:560px){ .brandcal{display:none} }
   .chip{background:var(--green-pale); color:var(--primary-ink); border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:500; border:1px solid var(--line); white-space:nowrap}
   .linkbtn{background:none; border:none; color:var(--muted); cursor:pointer; font:inherit; font-size:13px; white-space:nowrap}
   .linkbtn:hover{color:var(--ink)}
@@ -156,7 +160,7 @@
 <body>
 <header>
   <div class="bar">
-    <div class="mark">سكن<small>مساحتنا للتوافق</small></div>
+    <div class="mark">سكن<span class="brandcal" id="brandName"></span><small>مساحتنا للتوافق</small></div>
     <div class="bar-actions" id="barActions"></div>
   </div>
 </header>
@@ -243,6 +247,7 @@
         + `<button class="linkbtn" data-act="library">المكتبة</button>`
         + `<button class="linkbtn" data-act="discussions">المناقشات</button>`
         + `<button class="linkbtn" data-act="decisionlog">القرارات</button>`
+        + `<button class="linkbtn" data-act="charter">ميثاقنا</button>`
         + `<button class="linkbtn" data-act="connect">تواصلنا</button>`
         + `<button class="linkbtn" data-act="tasks">المهام</button>`
         + `<button class="linkbtn" data-act="budget">الميزانية</button>`
@@ -251,6 +256,8 @@
         + `<button class="linkbtn" data-act="logout">خروج</button>`
       : "";
     b.innerHTML = head + sw;
+    const bn = document.getElementById("brandName");
+    if(bn){ const idx = S.token ? (/ضحى|ضحي/.test(S.name||"")?1:(/مصطف/.test(S.name||"")?2:0)) : 0; const src = idx? document.querySelector('#nameAssets [data-ni="'+idx+'"]') : null; bn.innerHTML = src? src.outerHTML : ""; }
     markTheme();
   }
   function markTheme(){
@@ -273,6 +280,7 @@
     if(S.view==="discussions") return renderDiscussionsAll();
     if(S.view==="decisionlog") return renderDecisionLog();
     if(S.view==="connect") return renderConnect();
+    if(S.view==="charter") return renderCharter();
     if(S.view==="tasks") return renderTasks();
     if(S.view==="budget") return renderBudget();
     if(S.view==="shopping") return renderShopping();
@@ -356,9 +364,24 @@
 
   async function renderHome(){
     S.view="home"; S.resourceId=null;
-    el.innerHTML = greetHero() + `<div id="loops"><div class="empty">…تحميل</div></div>`;
+    el.innerHTML = greetHero()
+      + `<div id="focusBox"></div>`
+      + `<div class="card tight"><div class="eyebrow">نعمة النهارده</div>
+          <div class="row" style="margin-top:4px"><input id="homeGrat" type="text" placeholder="نعمة من بيتنا نشكر الله عليها…"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addGratHome">أضِف للامتنان</button></div></div>`
+      + `<div id="loops"><div class="empty">…تحميل</div></div>`;
     try{
-      const items = await api("GET","/resources");
+      const [items, foc] = await Promise.all([api("GET","/resources"), api("GET","/focus")]);
+      const fb = document.getElementById("focusBox");
+      if(foc.focus){ const r=foc.focus; fb.innerHTML = `
+        <div class="card res" data-open="${esc(r.id)}" style="border-color:var(--brand-gold)">
+          <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
+            ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : "" }
+            <div style="min-width:0"><div class="eyebrow" style="margin-bottom:2px">📌 مادتنا دلوقتي</div><h2 style="margin:0">${ytMark(r)}${esc(r.title)}</h2></div>
+          </div>
+          <div style="display:flex;gap:6px;flex:none;align-items:center">${dualProg(r.prog)}</div></div>
+        <div class="actions" style="margin:-6px 0 16px"><span class="spacer"></span><button class="linkbtn" data-act="clearFocus">إزالة التركيز</button></div>`;
+      }
       const bothDone = r => r.prog && r.prog.mine==='completed' && r.prog.partner==='completed';
       const open = items.filter(r=> !bothDone(r));
       const box = document.getElementById("loops");
@@ -552,6 +575,7 @@
         <span class="spacer"></span>
         <span class="muted" style="flex:none">الأولوية:</span>
         <div class="themesw">${prBtn('high','عالية')}${prBtn('medium','متوسطة')}${prBtn('later','لاحقًا')}</div>
+        <button class="btn soft sm" data-act="setFocus" style="flex:none">📌 مادتنا دلوقتي</button>
       </div>
       ${ emb ? `<div style="margin-top:14px;border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:16/9;background:#000"><iframe src="${emb}" style="width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`
             : (r.link ? `<div style="margin-top:8px"><a class="linkbtn" href="${esc(r.link)}" target="_blank" rel="noopener">فتح المصدر ↗</a></div>` : "") }
@@ -722,12 +746,56 @@
   // ---------- phase 5: التواصل ----------
   const MOOD_OPT = [["great","😍 رائعة"],["good","🙂 جيدة"],["ok","😐 عادية"],["low","😟 متعبة"]];
   const moodLabel = (v)=> (MOOD_OPT.find(m=>m[0]===v)||["","—"])[1];
+  async function renderCharter(){
+    S.view="charter"; S.resourceId=null;
+    el.innerHTML = pageTitle("ميثاقنا","اتفاقاتنا الثابتة اللي نرجعلها وقت الحاجة — من قلبنا ومن منهجنا.") + `<div id="chBody"><div class="empty">…تحميل</div></div>`;
+    try{
+      const items = await api("GET","/charter");
+      const by = k => items.filter(x=>x.kind===k);
+      const calm = by("calmword")[0];
+      const listBlock = (k, ph) => {
+        const arr = by(k);
+        return `<div class="row" style="margin-top:4px"><input id="ch_${k}" type="text" placeholder="${ph}"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addCharter" data-kind="${k}">أضِف</button></div>
+          ${arr.length? arr.map(it=>`<div class="actions" style="justify-content:space-between;padding:7px 0;border-top:1px solid var(--line)">
+            <span style="flex:1">• ${esc(it.text)}</span><button class="linkbtn" data-act="delCharter" data-id="${esc(it.id)}">حذف</button></div>`).join("")
+            : `<p class="muted" style="font-size:13px">لسه فاضي.</p>`}`;
+      };
+      document.getElementById("chBody").innerHTML = `
+        <div class="card"><div class="eyebrow">كلمة التهدئة</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">كلمة سرّ بسيطة نقولها أول ما النبرة تبدأ تحتدّ — إشارة نوقف عندها فورًا.</p>
+          ${calm? `<div class="codebox" style="font-size:20px;letter-spacing:1px">${esc(calm.text)}</div>
+            <div class="actions" style="margin-top:8px"><span class="spacer"></span><button class="linkbtn" data-act="delCharter" data-id="${esc(calm.id)}">تغيير/حذف</button></div>`
+          : `<div class="row" style="margin-top:4px"><input id="ch_calmword" type="text" placeholder="مثلًا: القمر 🌙"></div>
+            <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addCharter" data-kind="calmword">احفظ الكلمة</button></div>`}</div>
+
+        <div class="card"><div class="eyebrow">ميثاق التغافل</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">الحاجات الصغيرة اللي اتفقنا نعدّي عنها ومنوقفش عندها (الـ20%).</p>
+          ${listBlock("tagaful","حاجة نتغافل عنها…")}</div>
+
+        <div class="card"><div class="eyebrow">قواعدنا وقت الخلاف</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">قواعد نلتزم بيها وقت ما نختلف — زي قاعدة الـ24 ساعة، مفيش صمت عقابي، مننامش غاضبين.</p>
+          ${listBlock("conflict","قاعدة نلتزم بيها…")}</div>
+
+        <div class="card"><div class="eyebrow">نيّاتنا</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">ليه احنا هنا — النيّات اللي بنعقد عليها بيتنا.</p>
+          ${listBlock("niyyah","نيّة من نيّاتنا…")}</div>`;
+    }catch(e){ document.getElementById("chBody").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  function keyCol(arr, mine){
+    if(!arr.length) return `<p class="muted" style="font-size:12.5px">—</p>`;
+    return arr.map(k=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-top:1px solid var(--line)">
+      <span style="font-size:13.5px">${k.kind==='soothe'?'🌿':'⚠️'} ${esc(k.text)}</span>
+      ${mine?`<button class="linkbtn" data-act="delKey" data-id="${esc(k.id)}">حذف</button>`:""}</div>`).join("");
+  }
+
   async function renderConnect(){
     S.view="connect"; S.resourceId=null;
     el.innerHTML = pageTitle("تواصلنا","مساحة لمودّتنا: أمنياتنا، امتناننا، رسايلنا، واللي يصعب قوله.") + `<div id="cBody"><div class="empty">…تحميل</div></div>`;
     try{
-      const [wishes,grat,caps,mood,safe] = await Promise.all([
-        api("GET","/wishes"), api("GET","/gratitude"), api("GET","/capsules"), api("GET","/mood"), api("GET","/safespace")
+      const [wishes,grat,caps,mood,safe,keys] = await Promise.all([
+        api("GET","/wishes"), api("GET","/gratitude"), api("GET","/capsules"), api("GET","/mood"), api("GET","/safespace"), api("GET","/keys")
       ]);
       document.getElementById("cBody").innerHTML =
         `<div class="card"><div class="eyebrow">فحص حالتنا الآن</div>
@@ -750,6 +818,17 @@
           ${grat.length? grat.map(g=>`<div class="actions" style="justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)">
             <span>${esc(g.text)} <span class="pill ${g.mine?'':'warn'}" style="margin-inline-start:6px">${g.mine?'أنا':'شريكي'}</span></span>
             ${g.mine?`<button class="linkbtn" data-act="delGrat" data-id="${esc(g.id)}">حذف</button>`:""}</div>`).join("") : `<p class="muted" style="font-size:13px">امتنان صغير يصنع فرقًا.</p>`}</div>
+
+        <div class="card"><div class="eyebrow">كتالوج المفاتيح</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">كل واحد يكتب مفاتيحه: إيه اللي بيهدّيني وإيه اللي بيضايقني — عشان نتعلّم بعض ونراعي بعض.</p>
+          <div class="row" style="margin-top:4px"><label>يهدّيني 🌿</label><input id="keySoothe" type="text" placeholder="بحس بالأمان لما…"></div>
+          <div class="actions" style="margin-bottom:4px"><span class="spacer"></span><button class="btn sm" data-act="addKey" data-kind="soothe">أضِف</button></div>
+          <div class="row"><label>يضايقني ⚠️</label><input id="keyAnnoy" type="text" placeholder="بضايق لما…"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm ghost" data-act="addKey" data-kind="annoy">أضِف</button></div>
+          <div class="answers" style="margin-top:12px">
+            <div><div class="muted" style="font-size:12.5px;margin-bottom:2px">مفاتيحي</div>${keyCol(keys.mine,true)}</div>
+            <div><div class="muted" style="font-size:12.5px;margin-bottom:2px">مفاتيح شريكي</div>${keyCol(keys.partner,false)}</div>
+          </div></div>
 
         <div class="card"><div class="eyebrow">رسالة للمستقبل</div>
           <p class="muted" style="margin-top:-6px;font-size:13px">اكتب رسالة تُختَم حتى تاريخ تختاره؛ رسالة شريكك تظهر لك بعد تاريخها فقط.</p>
@@ -855,6 +934,15 @@
       if(act==="discussions"){ S.view="discussions"; render(); return; }
       if(act==="decisionlog"){ S.view="decisionlog"; render(); return; }
       if(act==="connect"){ S.view="connect"; render(); return; }
+      if(act==="charter"){ S.view="charter"; render(); return; }
+
+      if(act==="addCharter"){ const k=node.dataset.kind; const inp=document.getElementById("ch_"+k); const t=(inp&&inp.value||"").trim(); if(!t) return toast("اكتب حاجة الأول"); await api("POST","/charter",{kind:k,text:t}); renderCharter(); return; }
+      if(act==="delCharter"){ await api("POST","/charter/"+node.dataset.id+"/delete"); renderCharter(); return; }
+      if(act==="addKey"){ const k=node.dataset.kind; const inp=document.getElementById(k==='soothe'?"keySoothe":"keyAnnoy"); const t=(inp&&inp.value||"").trim(); if(!t) return toast("اكتب مفتاح"); await api("POST","/keys",{kind:k,text:t}); renderConnect(); return; }
+      if(act==="delKey"){ await api("POST","/keys/"+node.dataset.id+"/delete"); renderConnect(); return; }
+      if(act==="setFocus"){ await api("PUT","/focus",{resourceId:S.resourceId}); toast("بقت مادتنا دلوقتي 📌"); renderResource(); return; }
+      if(act==="clearFocus"){ await api("POST","/focus/clear"); renderHome(); return; }
+      if(act==="addGratHome"){ const inp=document.getElementById("homeGrat"); const t=(inp&&inp.value||"").trim(); if(!t) return toast("اكتب نعمة"); await api("POST","/gratitude",{text:t}); if(inp) inp.value=""; toast("أضفناها للامتنان 🌿"); return; }
 
       // ---- phase 5: connection ----
       if(act==="setMood"){ await api("PUT","/mood",{value:node.dataset.v}); renderConnect(); return; }

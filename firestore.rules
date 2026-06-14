@@ -42,4 +42,6 @@ service cloud.firestore {
 
 // ملاحظة: الباك-إند (firebase-admin) يتجاوز هذه القواعد، لكنها مرجع للنطاق:
 // مجموعات فيز 2 (tasks/budget/shopping) كلها تحمل pairId وتُقرأ/تُكتب عبر الـ API فقط،
-// المقيّد بالجلسة (session token → pairId). لا وصول مباشر من العميل.
+// وكذلك مجموعات التواصل (wishes/gratitude/capsules/mood/safespace) والمميزات الخاصة
+// (charter/keys/focus/progress) — كلها pairId-scoped وعبر الـ API فقط (session token → pairId).
+// لا وصول مباشر من العميل.
