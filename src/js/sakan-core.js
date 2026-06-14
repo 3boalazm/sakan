@@ -102,7 +102,7 @@
   // ---------- الدرج الجانبي (تقسيم زي زاد) ----------
   const NAVSECS = [
     { items:[["home","الرئيسية","🏠"]] },
-    { title:"رحلتنا", items:[["journeys","قوائمنا","▶️"],["library","المكتبة","📚"]] },
+    { title:"رحلتنا", items:[["journeys","قوائمنا","▶️"],["library","المكتبة","📚"],["myjourney","رحلتي","🌿"]] },
     { title:"الحوار والقرار", items:[["discussions","المناقشات","💬"],["decisionlog","القرارات","✅"],["charter","ميثاقنا","📜"]] },
     { title:"حياتنا", items:[["connect","تواصلنا","💞"],["quicknotes","مفكّرتنا","📝"],["tasks","المهام","🗒️"],["budget","الميزانية","💰"],["shopping","المشتريات","🛒"]] },
     { title:"الإعدادات", items:[["settings","الإعدادات","⚙️"],["downloadApk","تحميل التطبيق","📲"],["logout","خروج","↩️"]] },
@@ -177,6 +177,7 @@
     if(S.view==="budget") return renderBudget();
     if(S.view==="shopping") return renderShopping();
     if(S.view==="quicknotes") return renderQuickNotes();
+    if(S.view==="myjourney")  return renderMyJourney();
     if(S.view==="settings") return renderSettings();
     return renderLibrary();
   }

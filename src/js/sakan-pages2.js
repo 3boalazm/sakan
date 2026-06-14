@@ -281,6 +281,7 @@
       if(act==="discussions"){ S.view="discussions"; render(); return; }
       if(act==="decisionlog"){ S.view="decisionlog"; render(); return; }
       if(act==="connect"){ S.view="connect"; render(); return; }
+      if(act==="myjourney"){ S.view="myjourney"; render(); return; }
 
       // ---- PIN Lock actions ----
       if(act==="pinKey"){ pinHandleKey(node.dataset.k); return; }

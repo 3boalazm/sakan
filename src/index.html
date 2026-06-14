@@ -356,6 +356,28 @@
   .pin-hint a:hover{ text-decoration:underline; }
   .pin-err{ color:#ff8a80; font-size:13px; text-align:center; margin:8px 0 0; min-height:18px; }
   .pin-setup-label{ color:rgba(244,236,214,.82); font-size:14px; text-align:center; margin-bottom:16px; font-weight:600; }
+
+  /* ========== رحلتي ========== */
+  .jrn-day-label{
+    font-size:12px; font-weight:800; letter-spacing:1.5px;
+    color:var(--accent-ink); padding:20px 0 8px; display:flex; align-items:center; gap:8px;
+  }
+  .jrn-day-label::after{ content:''; flex:1; height:1px; background:var(--line); }
+  .jrn-group{ display:flex; flex-direction:column; gap:8px; margin-bottom:6px; }
+  .jrn-item{
+    display:flex; gap:12px; align-items:flex-start;
+    padding:12px 14px; border-radius:16px;
+    background:var(--surface); border:1px solid var(--line);
+    box-shadow:var(--shadow-sm); transition:transform .12s;
+  }
+  .jrn-item:hover{ transform:translateY(-1px); }
+  .jrn-item.mine{ border-right:3px solid var(--primary); }
+  .jrn-item.partner{ border-right:3px solid var(--accent); }
+  .jrn-ico{ font-size:20px; flex:none; margin-top:1px; }
+  .jrn-body{ flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  .jrn-who{ font-size:13px; font-weight:800; flex:none; }
+  .jrn-txt{ font-size:14px; color:var(--ink); flex:1; min-width:0; }
+  .jrn-time{ font-size:11.5px; color:var(--muted-2); flex:none; margin-inline-start:auto; }
 </style>
 </head>
 <body>
@@ -482,7 +504,7 @@
   // ---------- الدرج الجانبي (تقسيم زي زاد) ----------
   const NAVSECS = [
     { items:[["home","الرئيسية","🏠"]] },
-    { title:"رحلتنا", items:[["journeys","قوائمنا","▶️"],["library","المكتبة","📚"]] },
+    { title:"رحلتنا", items:[["journeys","قوائمنا","▶️"],["library","المكتبة","📚"],["myjourney","رحلتي","🌿"]] },
     { title:"الحوار والقرار", items:[["discussions","المناقشات","💬"],["decisionlog","القرارات","✅"],["charter","ميثاقنا","📜"]] },
     { title:"حياتنا", items:[["connect","تواصلنا","💞"],["quicknotes","مفكّرتنا","📝"],["tasks","المهام","🗒️"],["budget","الميزانية","💰"],["shopping","المشتريات","🛒"]] },
     { title:"الإعدادات", items:[["settings","الإعدادات","⚙️"],["downloadApk","تحميل التطبيق","📲"],["logout","خروج","↩️"]] },
@@ -557,6 +579,7 @@
     if(S.view==="budget") return renderBudget();
     if(S.view==="shopping") return renderShopping();
     if(S.view==="quicknotes") return renderQuickNotes();
+    if(S.view==="myjourney")  return renderMyJourney();
     if(S.view==="settings") return renderSettings();
     return renderLibrary();
   }
@@ -1324,6 +1347,85 @@
       </div>`;
   }
 
+  // ========== رحلتي ==========
+  async function renderMyJourney(){
+    S.view="myjourney"; S.resourceId=null;
+    el.innerHTML = pageTitle("رحلتي 🌿","كل خطوة خطوتيها في سكن — موثّقة هنا.")
+      + `<div id="jrnBody"><div class="empty">…تحميل</div></div>`;
+
+    let data;
+    try { data = await api("GET","/journey"); }
+    catch(e){ document.getElementById("jrnBody").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; return; }
+
+    const { events, myId } = data;
+    if(!events.length){
+      document.getElementById("jrnBody").innerHTML=`<div class="empty" style="padding:40px">لسه مفيش رحلة. ابدأ بإضافة مورد أو متابعة محتوى 🌱</div>`;
+      return;
+    }
+
+    // ── Icon & label per event type ──
+    function evIcon(e){
+      if(e.entity==="resource"){
+        if(e.type==="created")          return {ico:"📚",txt:`أضاف${e.isMine?'':'ت'} موردًا جديدًا`+(e.title?` · ${e.title}`:"")};
+        if(e.type==="progress"||e.type==="transition"){
+          if(e.to==="completed")        return {ico:"✅",txt:`أنهى${e.isMine?'':'ت'} مادة`+(e.title?` · ${e.title}`:"")};
+          if(e.to==="in_progress")      return {ico:"▶️",txt:`بدأ${e.isMine?'':'ت'} مادة`+(e.title?` · ${e.title}`:"")};
+        }
+        if(e.type==="summary_generated") return {ico:"🤖",txt:`ولّد${e.isMine?'':'ت'} ملخصًا`+(e.title?` · ${e.title}`:"")};
+      }
+      if(e.entity==="question"){
+        if(e.type==="created")          return {ico:"💬",txt:`أضاف${e.isMine?'':'ت'} سؤالًا للنقاش`+(e.title?` من · ${e.title}`:"")};
+        if(e.type==="response_submitted") return {ico:"✍️",txt:`أجاب${e.isMine?'':'ت'} على سؤال`+(e.title?` في · ${e.title}`:"")};
+        if(e.type==="transition" && e.to==="revealed") return {ico:"👀",txt:`كشف${e.isMine?'':'ت'} الإجابات`+(e.title?` · ${e.title}`:"")};
+      }
+      if(e.entity==="decision"){
+        if(e.type==="created")          return {ico:"⚡",txt:`سجّل${e.isMine?'':'ت'} قرارًا`+(e.title?` من · ${e.title}`:"")};
+        if(e.type==="confirmation")     return {ico:"🤝",txt:`أكّد${e.isMine?'':'ت'} قرارًا`};
+      }
+      if(e.entity==="task" && e.type==="created") return {ico:"🗒️",txt:`أضاف${e.isMine?'':'ت'} مهمة`};
+      return {ico:"🔔",txt:`نشاط`};
+    }
+
+    // ── Group by day ──
+    function dayLabel(ts){
+      const d = new Date(ts);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const yd = new Date(today); yd.setDate(yd.getDate()-1);
+      if(d >= today) return "اليوم";
+      if(d >= yd)    return "أمس";
+      return d.toLocaleDateString("ar-EG",{weekday:"long",month:"long",day:"numeric"});
+    }
+
+    // ── Render timeline ──
+    let html = "";
+    let lastDay = null;
+
+    events.forEach(e=>{
+      const day = dayLabel(e.createdAt);
+      if(day !== lastDay){
+        if(lastDay !== null) html += `</div>`;
+        html += `<div class="jrn-day-label">${day}</div><div class="jrn-group">`;
+        lastDay = day;
+      }
+      const {ico,txt} = evIcon(e);
+      const who    = e.isMine ? "أنا" : "ضحى";
+      const whoClr = e.isMine ? "var(--primary)" : "var(--accent)";
+      const time   = new Date(e.createdAt).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+      html += `
+        <div class="jrn-item ${e.isMine?'mine':'partner'}">
+          <div class="jrn-ico">${ico}</div>
+          <div class="jrn-body">
+            <span class="jrn-who" style="color:${whoClr}">${who}</span>
+            <span class="jrn-txt">${esc(txt)}</span>
+            <span class="jrn-time">${time}</span>
+          </div>
+        </div>`;
+    });
+    if(lastDay !== null) html += `</div>`;
+
+    document.getElementById("jrnBody").innerHTML = html;
+  }
+
 
   async function renderDiscussionsAll(){
     S.view="discussions"; S.resourceId=null;
@@ -1607,6 +1709,7 @@
       if(act==="discussions"){ S.view="discussions"; render(); return; }
       if(act==="decisionlog"){ S.view="decisionlog"; render(); return; }
       if(act==="connect"){ S.view="connect"; render(); return; }
+      if(act==="myjourney"){ S.view="myjourney"; render(); return; }
 
       // ---- PIN Lock actions ----
       if(act==="pinKey"){ pinHandleKey(node.dataset.k); return; }

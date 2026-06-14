@@ -708,3 +708,82 @@
         ` : `<p class="muted">اكشفا سؤالًا واحدًا على الأقل في تبويب الحوار أولًا، ثم عودا لتسجيل قراركما.</p>` }
       </div>`;
   }
+
+  // ========== رحلتي ==========
+  async function renderMyJourney(){
+    S.view="myjourney"; S.resourceId=null;
+    el.innerHTML = pageTitle("رحلتي 🌿","كل خطوة خطوتيها في سكن — موثّقة هنا.")
+      + `<div id="jrnBody"><div class="empty">…تحميل</div></div>`;
+
+    let data;
+    try { data = await api("GET","/journey"); }
+    catch(e){ document.getElementById("jrnBody").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; return; }
+
+    const { events, myId } = data;
+    if(!events.length){
+      document.getElementById("jrnBody").innerHTML=`<div class="empty" style="padding:40px">لسه مفيش رحلة. ابدأ بإضافة مورد أو متابعة محتوى 🌱</div>`;
+      return;
+    }
+
+    // ── Icon & label per event type ──
+    function evIcon(e){
+      if(e.entity==="resource"){
+        if(e.type==="created")          return {ico:"📚",txt:`أضاف${e.isMine?'':'ت'} موردًا جديدًا`+(e.title?` · ${e.title}`:"")};
+        if(e.type==="progress"||e.type==="transition"){
+          if(e.to==="completed")        return {ico:"✅",txt:`أنهى${e.isMine?'':'ت'} مادة`+(e.title?` · ${e.title}`:"")};
+          if(e.to==="in_progress")      return {ico:"▶️",txt:`بدأ${e.isMine?'':'ت'} مادة`+(e.title?` · ${e.title}`:"")};
+        }
+        if(e.type==="summary_generated") return {ico:"🤖",txt:`ولّد${e.isMine?'':'ت'} ملخصًا`+(e.title?` · ${e.title}`:"")};
+      }
+      if(e.entity==="question"){
+        if(e.type==="created")          return {ico:"💬",txt:`أضاف${e.isMine?'':'ت'} سؤالًا للنقاش`+(e.title?` من · ${e.title}`:"")};
+        if(e.type==="response_submitted") return {ico:"✍️",txt:`أجاب${e.isMine?'':'ت'} على سؤال`+(e.title?` في · ${e.title}`:"")};
+        if(e.type==="transition" && e.to==="revealed") return {ico:"👀",txt:`كشف${e.isMine?'':'ت'} الإجابات`+(e.title?` · ${e.title}`:"")};
+      }
+      if(e.entity==="decision"){
+        if(e.type==="created")          return {ico:"⚡",txt:`سجّل${e.isMine?'':'ت'} قرارًا`+(e.title?` من · ${e.title}`:"")};
+        if(e.type==="confirmation")     return {ico:"🤝",txt:`أكّد${e.isMine?'':'ت'} قرارًا`};
+      }
+      if(e.entity==="task" && e.type==="created") return {ico:"🗒️",txt:`أضاف${e.isMine?'':'ت'} مهمة`};
+      return {ico:"🔔",txt:`نشاط`};
+    }
+
+    // ── Group by day ──
+    function dayLabel(ts){
+      const d = new Date(ts);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const yd = new Date(today); yd.setDate(yd.getDate()-1);
+      if(d >= today) return "اليوم";
+      if(d >= yd)    return "أمس";
+      return d.toLocaleDateString("ar-EG",{weekday:"long",month:"long",day:"numeric"});
+    }
+
+    // ── Render timeline ──
+    let html = "";
+    let lastDay = null;
+
+    events.forEach(e=>{
+      const day = dayLabel(e.createdAt);
+      if(day !== lastDay){
+        if(lastDay !== null) html += `</div>`;
+        html += `<div class="jrn-day-label">${day}</div><div class="jrn-group">`;
+        lastDay = day;
+      }
+      const {ico,txt} = evIcon(e);
+      const who    = e.isMine ? "أنا" : "ضحى";
+      const whoClr = e.isMine ? "var(--primary)" : "var(--accent)";
+      const time   = new Date(e.createdAt).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
+      html += `
+        <div class="jrn-item ${e.isMine?'mine':'partner'}">
+          <div class="jrn-ico">${ico}</div>
+          <div class="jrn-body">
+            <span class="jrn-who" style="color:${whoClr}">${who}</span>
+            <span class="jrn-txt">${esc(txt)}</span>
+            <span class="jrn-time">${time}</span>
+          </div>
+        </div>`;
+    });
+    if(lastDay !== null) html += `</div>`;
+
+    document.getElementById("jrnBody").innerHTML = html;
+  }
