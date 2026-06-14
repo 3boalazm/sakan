@@ -229,6 +229,9 @@
         + `<button class="linkbtn" data-act="home">الرئيسية</button>`
         + `<button class="linkbtn" data-act="journeys">الرحلة</button>`
         + `<button class="linkbtn" data-act="library">المكتبة</button>`
+        + `<button class="linkbtn" data-act="discussions">المناقشات</button>`
+        + `<button class="linkbtn" data-act="decisionlog">القرارات</button>`
+        + `<button class="linkbtn" data-act="connect">تواصلنا</button>`
         + `<button class="linkbtn" data-act="tasks">المهام</button>`
         + `<button class="linkbtn" data-act="budget">الميزانية</button>`
         + `<button class="linkbtn" data-act="shopping">المشتريات</button>`
@@ -255,6 +258,9 @@
     if(S.view==="resource" && S.resourceId){ return renderResource(); }
     if(S.view==="home") return renderHome();
     if(S.view==="journeys") return renderJourneys();
+    if(S.view==="discussions") return renderDiscussionsAll();
+    if(S.view==="decisionlog") return renderDecisionLog();
+    if(S.view==="connect") return renderConnect();
     if(S.view==="tasks") return renderTasks();
     if(S.view==="budget") return renderBudget();
     if(S.view==="shopping") return renderShopping();
@@ -278,7 +284,7 @@
   ];
   const PRIO_AR = { high:"عالية", medium:"متوسطة", later:"لاحقًا" };
   const PRIO_W  = { high:0, medium:1, later:2 };
-  const TYPE_ICON = { course:"🎓", book:"📖", pdf:"📄", article:"📰" };
+  const TYPE_ICON = { course:"🎓", book:"📖", video:"🎬", pdf:"📄", article:"📰" };
 
   async function renderJourneys(){
     S.view="journeys"; S.resourceId=null;
@@ -494,19 +500,46 @@
     try{ S.detail = await api("GET","/resources/"+S.resourceId); }
     catch(e){ el.innerHTML = `<div class="empty">${esc(errMsg(e))}</div><button class="btn ghost" data-act="library">رجوع</button>`; return; }
     const r = S.detail.resource;
+    const emb = ytEmbed(r.link);
     el.innerHTML = `
       <button class="linkbtn" data-act="library">→ المكتبة</button>
       <h1 class="display" style="margin-top:8px">${esc(r.title)}</h1>
       <span class="pill dot ${r.status==='completed'?'':'warn'}">${STATE_AR[r.status]||esc(r.status)}</span>
+      ${ emb ? `<div style="margin-top:14px;border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:16/9;background:#000"><iframe src="${emb}" style="width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`
+            : (r.link ? `<div style="margin-top:8px"><a class="linkbtn" href="${esc(r.link)}" target="_blank" rel="noopener">فتح المصدر ↗</a></div>` : "") }
       <div class="tabs">
         <button class="tab ${S.tab==='summary'?'active':''}" data-tab="summary">الملخص</button>
         <button class="tab ${S.tab==='discussion'?'active':''}" data-tab="discussion">الحوار</button>
+        <button class="tab ${S.tab==='notes'?'active':''}" data-tab="notes">ملاحظات</button>
         <button class="tab ${S.tab==='decisions'?'active':''}" data-tab="decisions">القرارات</button>
       </div>
       <div id="tab"></div>`;
     if(S.tab==="summary") renderSummary();
     else if(S.tab==="discussion") renderDiscussion();
+    else if(S.tab==="notes") renderNotes();
     else renderDecisions();
+  }
+  function ytEmbed(link){
+    link = link||"";
+    const v = link.match(/(?:youtu\.be\/|[?&]v=)([\w-]{6,})/);
+    if(v) return "https://www.youtube.com/embed/"+v[1];
+    const p = link.match(/[?&]list=([\w-]+)/);
+    if(p && /youtube\.com\/playlist/.test(link)) return "https://www.youtube.com/embed/videoseries?list="+p[1];
+    return null;
+  }
+  async function renderNotes(){
+    const t = document.getElementById("tab");
+    t.innerHTML = `<div class="empty">…تحميل</div>`;
+    let n; try{ n = await api("GET","/resources/"+S.resourceId+"/notes"); }catch(e){ t.innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; return; }
+    t.innerHTML = `
+      <div class="card"><div class="eyebrow">ملاحظات مشتركة</div>
+        <p class="muted" style="margin-top:-6px">يشوفها ويعدّلها الطرفان.</p>
+        <textarea id="sharedNote" placeholder="نقاط اتفقتوا تكتبوها سوا…">${esc(n.shared)}</textarea>
+        <div class="actions" style="margin-top:8px"><span class="spacer"></span><button class="btn sm" data-act="saveSharedNote">احفظ المشتركة</button></div></div>
+      <div class="card"><div class="eyebrow">ملاحظاتك الخاصة</div>
+        <p class="muted" style="margin-top:-6px">تظهر لك وحدك.</p>
+        <textarea id="privNote" placeholder="تأملاتك الخاصة حول هذا المورد…">${esc(n.mine)}</textarea>
+        <div class="actions" style="margin-top:8px"><span class="spacer"></span><button class="btn sm" data-act="savePrivateNote">احفظ الخاصة</button></div></div>`;
   }
 
   function renderSummary(){
@@ -567,19 +600,27 @@
     }).join("");
   }
 
+  const CAT_AR = { general:"عام", financial:"مالي", family:"عائلي", life:"حياتي" };
+  function decCard(d, opts){
+    const inResource = opts && opts.inResource;
+    return `<div class="card">
+        <div class="eyebrow">قرار${d.category?` · ${CAT_AR[d.category]||esc(d.category)}`:""}</div>
+        <p style="font-family:'El Messiri',serif; font-size:18px; margin:0 0 ${(d.context||d.reviewDate)?'6':'10'}px">${esc(d.statement)}</p>
+        ${d.context?`<p class="muted" style="font-size:13.5px;margin:0 0 8px">السياق: ${esc(d.context)}</p>`:""}
+        ${d.reviewDate?`<p class="muted" style="font-size:13px;margin:0 0 8px">📅 مراجعة: ${esc(d.reviewDate)}${d.reviewed?' · تمت':''}</p>`:""}
+        <div class="actions">
+          <span class="pill dot ${d.state==='confirmed'?'':'warn'}" style="${d.state==='confirmed'?'background:var(--accent-soft);color:#7c4b5b':''}">${STATE_AR[d.state]||esc(d.state)} ${d.confirmCount?('· '+d.confirmCount+'/2'):''}</span>
+          ${ inResource && d.state!=="confirmed" ? `<button class="btn accent sm" data-act="confirm" data-d="${esc(d.id)}">أؤكّد موافقتي</button>` : (d.state==="confirmed"? `<span class="muted" style="font-size:13px">مؤكَّد من كليكما.</span>`:"") }
+          ${ (d.state==="confirmed" && !d.reviewed) ? `<button class="btn ghost sm" data-act="reviewDec" data-d="${esc(d.id)}">تمت المراجعة</button>` : "" }
+        </div>
+      </div>`;
+  }
+
   function renderDecisions(){
     const t = document.getElementById("tab");
     const decs = S.detail.decisions || [];
     const qs = (S.detail.questions||[]).filter(q=> q.state==="revealed" || q.state==="decided");
-    const list = decs.length ? decs.map(d=>`
-      <div class="card">
-        <div class="eyebrow">قرار</div>
-        <p style="font-family:'El Messiri',serif; font-size:18px; margin:0 0 10px">${esc(d.statement)}</p>
-        <div class="actions">
-          <span class="pill dot ${d.state==='confirmed'?'':'warn'}" style="${d.state==='confirmed'?'background:var(--accent-soft);color:#7c4b5b':''}">${STATE_AR[d.state]||esc(d.state)} ${d.confirmCount?('· '+d.confirmCount+'/2'):''}</span>
-          ${ d.state!=="confirmed" ? `<button class="btn accent sm" data-act="confirm" data-d="${esc(d.id)}">أؤكّد موافقتي</button>` : `<span class="muted" style="font-size:13px">مؤكَّد من كليكما — قرارٌ نهائي.</span>` }
-        </div>
-      </div>`).join("") : `<div class="empty">لا قرارات بعد. القرار هو ثمرة الحوار — سجّلاه بعد أن تكشفا إجاباتكما.</div>`;
+    const list = decs.length ? decs.map(d=> decCard(d,{inResource:true})).join("") : `<div class="empty">لا قرارات بعد. القرار هو ثمرة الحوار — سجّلاه بعد أن تكشفا إجاباتكما.</div>`;
 
     t.innerHTML = list + `
       <div class="card">
@@ -587,12 +628,102 @@
         <h2>على ماذا اتفقتما؟</h2>
         ${ qs.length ? `
         <div class="row"><label>صياغة القرار</label><textarea id="dStmt" placeholder="مثلًا: اتفقنا على تخصيص ليلة أسبوعية للحوار."></textarea></div>
+        <div class="row"><label>السياق (اختياري)</label><textarea id="dContext" placeholder="إيه اللي أدّى للقرار ده؟"></textarea></div>
+        <div class="row"><label>التصنيف</label>
+          <div class="themesw" id="dCat" role="group" style="border-radius:12px;flex-wrap:wrap">
+            <button type="button" data-cat="general" class="on" style="width:auto;padding:6px 12px">عام</button>
+            <button type="button" data-cat="financial" style="width:auto;padding:6px 12px">مالي</button>
+            <button type="button" data-cat="family" style="width:auto;padding:6px 12px">عائلي</button>
+            <button type="button" data-cat="life" style="width:auto;padding:6px 12px">حياتي</button></div></div>
+        <div class="row"><label>تاريخ مراجعة (اختياري)</label><input id="dReview" type="text" placeholder="2026-12-01"></div>
         <label>اربط القرار بالأسئلة التي ناقشتماها</label>
         <div class="checks">${qs.map(q=>`<label><input type="checkbox" class="dq" value="${esc(q.id)}"><span>${esc(q.text)}</span></label>`).join("")}</div>
         <button class="btn" data-act="createDec">سجّل القرار (مسودّة)</button>
         <p class="muted" style="font-size:12.5px; margin-top:10px">يصبح القرار نهائيًا فقط بعد أن يؤكّده الطرفان.</p>
         ` : `<p class="muted">اكشفا سؤالًا واحدًا على الأقل في تبويب الحوار أولًا، ثم عودا لتسجيل قراركما.</p>` }
       </div>`;
+  }
+
+  async function renderDiscussionsAll(){
+    S.view="discussions"; S.resourceId=null;
+    el.innerHTML = pageTitle("المناقشات","كل الأسئلة عبر موادكم في مكان واحد.") + `<div id="dscBody"><div class="empty">…تحميل</div></div>`;
+    try{
+      const [qs, res] = await Promise.all([api("GET","/questions"), api("GET","/resources")]);
+      const titles = Object.fromEntries(res.map(r=>[r.id, r.title]));
+      const body=document.getElementById("dscBody");
+      if(!qs.length){ body.innerHTML=`<div class="empty">لسه مفيش أسئلة. افتح موردًا وولّد منه أسئلة نقاش.</div>`; return; }
+      const byRes={}; qs.forEach(q=>{ (byRes[q.resourceId]=byRes[q.resourceId]||[]).push(q); });
+      body.innerHTML = Object.keys(byRes).map(rid=>`<div class="eyebrow" style="margin-top:20px">${esc(titles[rid]||"مورد")}</div>`
+        + byRes[rid].map(q=>`<div class="card res" data-openq="${esc(rid)}">
+            <div style="flex:1;min-width:0"><p style="margin:0">${esc(q.text)}</p></div>
+            <span class="pill dot ${['revealed','decided'].includes(q.state)?'':'warn'}" style="flex:none">${STATE_AR[q.state]||esc(q.state)}</span>
+          </div>`).join("")).join("");
+    }catch(e){ document.getElementById("dscBody").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  async function renderDecisionLog(){
+    S.view="decisionlog"; S.resourceId=null;
+    el.innerHTML = pageTitle("سجل القرارات","كل ما اتفقتم عليه — مرتّب ودائم.") + `<div id="decBody"><div class="empty">…تحميل</div></div>`;
+    try{
+      const decs = await api("GET","/decisions");
+      document.getElementById("decBody").innerHTML = decs.length ? decs.map(d=> decCard(d,{inResource:false})).join("")
+        : `<div class="empty">لا قرارات بعد. كل حوار تكملوه يتحوّل لقرار من تبويب القرارات داخل المورد.</div>`;
+    }catch(e){ document.getElementById("decBody").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  // ---------- phase 5: التواصل ----------
+  const MOOD_OPT = [["great","😍 رائعة"],["good","🙂 جيدة"],["ok","😐 عادية"],["low","😟 متعبة"]];
+  const moodLabel = (v)=> (MOOD_OPT.find(m=>m[0]===v)||["","—"])[1];
+  async function renderConnect(){
+    S.view="connect"; S.resourceId=null;
+    el.innerHTML = pageTitle("تواصلنا","مساحة للمودة: أمنياتكم، امتنانكم، رسائلكم، وما يصعب قوله.") + `<div id="cBody"><div class="empty">…تحميل</div></div>`;
+    try{
+      const [wishes,grat,caps,mood,safe] = await Promise.all([
+        api("GET","/wishes"), api("GET","/gratitude"), api("GET","/capsules"), api("GET","/mood"), api("GET","/safespace")
+      ]);
+      document.getElementById("cBody").innerHTML =
+        `<div class="card"><div class="eyebrow">فحص حالتنا الآن</div>
+          <div class="actions" style="flex-wrap:wrap;gap:8px;margin-top:6px">
+            ${MOOD_OPT.map(([v,l])=>`<button class="btn ${mood.mine===v?'':'ghost'} sm" data-act="setMood" data-v="${v}">${l}</button>`).join("")}</div>
+          <p class="muted" style="font-size:13px;margin-top:10px">أنت: <b>${esc(moodLabel(mood.mine))}</b> · شريكك: <b>${mood.partner?esc(moodLabel(mood.partner)):"لم يحدّد بعد"}</b></p></div>
+
+        <div class="card"><div class="eyebrow">قائمة أمنياتنا</div>
+          <div class="row"><input id="wText" type="text" placeholder="حاجة نفسنا نعملها سوا…"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addWish">أضِف</button></div>
+          ${wishes.length? wishes.map(w=>`<div class="actions" style="justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)">
+            <div style="display:flex;align-items:center;gap:8px"><button class="btn ${w.done?'':'ghost'} sm" data-act="toggleWish" data-id="${esc(w.id)}">${w.done?'✓':'○'}</button>
+            <span style="${w.done?'text-decoration:line-through;opacity:.6':''}">${esc(w.text)}</span></div>
+            <button class="linkbtn" data-act="delWish" data-id="${esc(w.id)}">حذف</button></div>`).join("") : `<p class="muted" style="font-size:13px">ابدأوا بأمنية واحدة.</p>`}</div>
+
+        <div class="card"><div class="eyebrow">مساحة الامتنان</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">اكتب شيئًا تشكر فيه شريكك — يراه الطرفان.</p>
+          <div class="row"><input id="gText" type="text" placeholder="ممتنّ لك لأنك…"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addGrat">أضِف</button></div>
+          ${grat.length? grat.map(g=>`<div class="actions" style="justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)">
+            <span>${esc(g.text)} <span class="pill ${g.mine?'':'warn'}" style="margin-inline-start:6px">${g.mine?'أنا':'شريكي'}</span></span>
+            ${g.mine?`<button class="linkbtn" data-act="delGrat" data-id="${esc(g.id)}">حذف</button>`:""}</div>`).join("") : `<p class="muted" style="font-size:13px">امتنان صغير يصنع فرقًا.</p>`}</div>
+
+        <div class="card"><div class="eyebrow">رسالة للمستقبل</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">اكتب رسالة تُختَم حتى تاريخ تختاره؛ رسالة شريكك تظهر لك بعد تاريخها فقط.</p>
+          <div class="row"><textarea id="capContent" placeholder="رسالة لنا بعد سنة…"></textarea></div>
+          <div class="row"><label>تاريخ الفتح (اختياري)</label><input id="capDate" type="text" placeholder="2027-06-01"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addCapsule">اختِم الرسالة</button></div>
+          ${caps.length? caps.map(c=>`<div class="card tight" style="margin-top:8px">
+            <div class="actions" style="justify-content:space-between"><span class="pill ${c.mine?'':'warn'}">${c.mine?'رسالتك':'رسالة شريكك'}</span>${c.openDate?`<span class="pill">📅 ${esc(c.openDate)}</span>`:""}</div>
+            <p style="margin:8px 0 0">${c.sealed?'<span class="muted">🔒 مختومة حتى تاريخها.</span>':esc(c.content)}</p></div>`).join("") : ""}</div>
+
+        <div class="card"><div class="eyebrow">صندوق التفاهم</div>
+          <p class="muted" style="margin-top:-6px;font-size:13px">اطرح موضوعًا يصعب قوله — بهدوء، وبصيغة المشاعر والاحتياج.</p>
+          <div class="row"><label>الموضوع</label><input id="safeTopic" type="text" placeholder="حاجة نفسي نتكلم فيها…"></div>
+          <div class="row"><label>أشعر أنّ…</label><input id="safeFeel" type="text" placeholder="بصراحة بحس إن…"></div>
+          <div class="row"><label>وأحتاج…</label><input id="safeNeed" type="text" placeholder="محتاج منك…"></div>
+          <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addSafe">ضَعها في الصندوق</button></div>
+          ${safe.length? safe.map(x=>`<div class="card tight" style="margin-top:8px">
+            <div class="actions" style="justify-content:space-between"><b>${esc(x.topic)}</b><span class="pill ${x.status==='addressed'?'':'warn'} dot">${x.status==='addressed'?'تمت معالجته':'مفتوح'}</span></div>
+            ${x.feeling?`<p class="muted" style="font-size:13.5px;margin:6px 0 0">أشعر: ${esc(x.feeling)}</p>`:""}
+            ${x.need?`<p class="muted" style="font-size:13.5px;margin:2px 0 0">أحتاج: ${esc(x.need)}</p>`:""}
+            <div class="actions" style="margin-top:8px"><span class="pill ${x.mine?'':'warn'}">${x.mine?'مني':'من شريكي'}</span>${x.status!=='addressed'?`<div class="spacer"></div><button class="btn soft sm" data-act="safeAddressed" data-id="${esc(x.id)}">تكلّمنا فيه</button>`:""}</div></div>`).join("") : `<p class="muted" style="font-size:13px">الصندوق فاضي — وده كويس.</p>`}</div>`;
+    }catch(e){ document.getElementById("cBody").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
   }
 
   // ---------- actions ----------
@@ -659,7 +790,10 @@
         if(!statement) return toast("اكتب صياغة القرار");
         const questionIds=[...document.querySelectorAll(".dq:checked")].map(x=>x.value);
         if(!questionIds.length) return toast("اختر سؤالًا واحدًا على الأقل");
-        await api("POST","/decisions",{ resourceId:S.resourceId, statement, questionIds });
+        const context=(document.getElementById("dContext").value||"").trim();
+        const category=(document.querySelector("#dCat button.on")||{}).dataset?.cat || "general";
+        const reviewDate=(document.getElementById("dReview").value||"").trim();
+        await api("POST","/decisions",{ resourceId:S.resourceId, statement, questionIds, context:context||null, category, reviewDate:reviewDate||null });
         toast("سُجّل القرار كمسودّة"); renderResource(); return;
       }
       if(act==="confirm"){ await api("POST","/decisions/"+node.dataset.d+"/confirm"); toast("سُجّلت موافقتك"); renderResource(); return; }
@@ -667,7 +801,28 @@
       // ---- navigation to new pages ----
       if(act==="home"){ S.view="home"; render(); return; }
       if(act==="journeys"){ S.view="journeys"; render(); return; }
+      if(act==="discussions"){ S.view="discussions"; render(); return; }
+      if(act==="decisionlog"){ S.view="decisionlog"; render(); return; }
+      if(act==="connect"){ S.view="connect"; render(); return; }
+
+      // ---- phase 5: connection ----
+      if(act==="setMood"){ await api("PUT","/mood",{value:node.dataset.v}); renderConnect(); return; }
+      if(act==="addWish"){ const t=(document.getElementById("wText").value||"").trim(); if(!t) return toast("اكتب الأمنية"); await api("POST","/wishes",{text:t}); renderConnect(); return; }
+      if(act==="toggleWish"){ await api("POST","/wishes/"+node.dataset.id+"/toggle"); renderConnect(); return; }
+      if(act==="delWish"){ await api("POST","/wishes/"+node.dataset.id+"/delete"); renderConnect(); return; }
+      if(act==="addGrat"){ const t=(document.getElementById("gText").value||"").trim(); if(!t) return toast("اكتب امتنانك"); await api("POST","/gratitude",{text:t}); renderConnect(); return; }
+      if(act==="delGrat"){ await api("POST","/gratitude/"+node.dataset.id+"/delete"); renderConnect(); return; }
+      if(act==="addCapsule"){ const c=(document.getElementById("capContent").value||"").trim(); if(!c) return toast("اكتب رسالتك"); const d=(document.getElementById("capDate").value||"").trim(); await api("POST","/capsules",{content:c,openDate:d||null}); toast("خُتمت الرسالة"); renderConnect(); return; }
+      if(act==="addSafe"){ const topic=(document.getElementById("safeTopic").value||"").trim(); if(!topic) return toast("اكتب الموضوع"); await api("POST","/safespace",{topic,feeling:(document.getElementById("safeFeel").value||"").trim(),need:(document.getElementById("safeNeed").value||"").trim()}); toast("أُضيف للصندوق"); renderConnect(); return; }
+      if(act==="safeAddressed"){ await api("POST","/safespace/"+node.dataset.id+"/addressed"); renderConnect(); return; }
       if(act==="seedCurriculum"){ const r=await api("POST","/journey/seed"); toast(r.already? "المنهج مستورد بالفعل" : "تم استيراد "+r.seeded+" موردًا"); renderJourneys(); return; }
+
+      // ---- notes ----
+      if(act==="saveSharedNote"){ await api("PUT","/resources/"+S.resourceId+"/notes",{scope:"shared",content:document.getElementById("sharedNote").value}); toast("حُفظت الملاحظة المشتركة"); return; }
+      if(act==="savePrivateNote"){ await api("PUT","/resources/"+S.resourceId+"/notes",{scope:"private",content:document.getElementById("privNote").value}); toast("حُفظت ملاحظتك الخاصة"); return; }
+
+      // ---- review a decision ----
+      if(act==="reviewDec"){ await api("POST","/decisions/"+node.dataset.d+"/reviewed"); toast("سُجّلت المراجعة"); if(S.view==="resource") renderResource(); else renderDecisionLog(); return; }
       if(act==="tasks"){ S.view="tasks"; render(); return; }
       if(act==="budget"){ S.view="budget"; render(); return; }
       if(act==="shopping"){ S.view="shopping"; render(); return; }
@@ -723,7 +878,11 @@
     const t = ev.target.closest("[data-tab]");
     if(t){ S.tab=t.dataset.tab; renderResource(); return; }
     const open = ev.target.closest("[data-open]");
-    if(open){ S.resourceId=open.dataset.open; S.view="resource"; S.tab="summary"; render(); }
+    if(open){ S.resourceId=open.dataset.open; S.view="resource"; S.tab="summary"; render(); return; }
+    const oq = ev.target.closest("[data-openq]");
+    if(oq){ S.resourceId=oq.dataset.openq; S.view="resource"; S.tab="discussion"; render(); return; }
+    const cat = ev.target.closest("[data-cat]");
+    if(cat){ [...cat.parentElement.children].forEach(x=>x.classList.toggle("on", x===cat)); return; }
   });
 
   document.getElementById("foot").innerHTML = "سكن · مساحة خاصة لطرفين — خاصّة بطبيعتها، بلا مشاركة عامة.";
