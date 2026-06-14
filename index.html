@@ -226,7 +226,12 @@
       <button data-set-theme="oled" title="OLED">⚫</button></div>`;
     const head = S.token
       ? (S.code? `<span class="chip" title="شارِك هذا الكود مع شريكك">كود الميثاق: ${esc(S.code)}</span>`:"")
+        + `<button class="linkbtn" data-act="home">الرئيسية</button>`
         + `<button class="linkbtn" data-act="library">المكتبة</button>`
+        + `<button class="linkbtn" data-act="tasks">المهام</button>`
+        + `<button class="linkbtn" data-act="budget">الميزانية</button>`
+        + `<button class="linkbtn" data-act="shopping">المشتريات</button>`
+        + `<button class="linkbtn" data-act="settings">الإعدادات</button>`
         + `<button class="linkbtn" data-act="logout">خروج</button>`
       : "";
     b.innerHTML = head + sw;
@@ -247,7 +252,129 @@
     renderBar();
     if(!S.token){ return renderOnboarding(); }
     if(S.view==="resource" && S.resourceId){ return renderResource(); }
+    if(S.view==="home") return renderHome();
+    if(S.view==="tasks") return renderTasks();
+    if(S.view==="budget") return renderBudget();
+    if(S.view==="shopping") return renderShopping();
+    if(S.view==="settings") return renderSettings();
     return renderLibrary();
+  }
+
+  // ---------- phase 2 + home: helpers ----------
+  const OWN_AR = { m:"مصطفى", d:"ضحى", both:"الاتنين" };
+  const fmtMoney = (n)=> (Number(n)||0).toLocaleString("ar-EG");
+  function pageTitle(t, lede){ return `<h1 class="display">${esc(t)}</h1>${lede?`<p class="lede">${esc(lede)}</p>`:""}`; }
+
+  async function renderHome(){
+    S.view="home"; S.resourceId=null;
+    el.innerHTML = pageTitle("الرئيسية","ده اللي مستني دوركم — سكن بيجيبلكم المهم، ما بيدفعش إشعارات.") + `<div id="loops"><div class="empty">…تحميل</div></div>`;
+    try{
+      const items = await api("GET","/resources");
+      const open = items.filter(r=> r.status!=="completed");
+      const box = document.getElementById("loops");
+      if(!open.length){ box.innerHTML = `<div class="empty">مفيش حلقات مفتوحة 🌿 خلّصتوا كل المواد المضافة. تقدروا تضيفوا مورد جديد من المكتبة.</div>`; return; }
+      box.innerHTML = `<div class="eyebrow" style="margin-bottom:10px">حلقات مفتوحة</div>` + open.slice(0,8).map(r=>`
+        <div class="card res" data-open="${esc(r.id)}">
+          <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
+            ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : "" }
+            <div style="min-width:0"><h2 style="margin:0">${esc(r.title)}</h2><div class="meta">${r.link?esc(r.link):"بدون رابط"}</div></div>
+          </div>
+          <span class="pill dot warn" style="flex:none">${STATE_AR[r.status]||esc(r.status)}</span>
+        </div>`).join("");
+    }catch(e){ document.getElementById("loops").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  async function renderTasks(){
+    S.view="tasks"; S.resourceId=null;
+    el.innerHTML = pageTitle("المهام ومخطّط الفرح","مهام تتقسّم بينكم بمسؤول وتاريخ — فريق واحد.") + `
+      <div class="card tight">
+        <div class="row"><label>المهمة</label><input id="tTitle" type="text" placeholder="مثلًا: حجز القاعة"></div>
+        <div class="row"><label>المسؤول</label>
+          <div class="themesw" id="tOwner" role="group" style="border-radius:12px">
+            <button type="button" data-own="m" style="width:auto;padding:6px 12px">مصطفى</button>
+            <button type="button" data-own="d" style="width:auto;padding:6px 12px">ضحى</button>
+            <button type="button" data-own="both" class="on" style="width:auto;padding:6px 12px">الاتنين</button></div></div>
+        <div class="row"><label>تاريخ (اختياري)</label><input id="tDue" type="text" placeholder="2026-08-01"></div>
+        <button class="btn" data-act="addTask">أضِف مهمة</button>
+      </div>
+      <div id="tList"><div class="empty">…تحميل</div></div>`;
+    document.getElementById("tOwner").addEventListener("click",ev=>{const b=ev.target.closest("button[data-own]");if(!b)return;[...ev.currentTarget.children].forEach(x=>x.classList.toggle("on",x===b));});
+    await reloadTasks();
+  }
+  async function reloadTasks(){
+    try{
+      const items = await api("GET","/tasks");
+      const list = document.getElementById("tList");
+      list.innerHTML = items.length ? items.map(t=>`
+        <div class="card tight"><div class="actions" style="justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="btn ${t.done?'':'ghost'} sm" data-act="toggleTask" data-id="${esc(t.id)}">${t.done?'✓ تم':'علّم تم'}</button>
+            <span style="${t.done?'text-decoration:line-through;opacity:.6':''}">${esc(t.title)}</span></div>
+          <button class="linkbtn" data-act="delTask" data-id="${esc(t.id)}">حذف</button></div>
+          <div class="actions" style="margin-top:8px"><span class="pill">المسؤول: ${esc(OWN_AR[t.owner]||t.owner)}</span>${t.due?`<span class="pill warn">📅 ${esc(t.due)}</span>`:""}</div>
+        </div>`).join("") : `<div class="empty">مفيش مهام. أضيفوا أول مهمة فوق.</div>`;
+    }catch(e){ document.getElementById("tList").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  async function renderBudget(){
+    S.view="budget"; S.resourceId=null;
+    el.innerHTML = pageTitle("الميزانية المشتركة","تتبّعوا فين رايحة الفلوس: مخطّط، مدفوع، ومتبقّي.") + `
+      <div class="card tight">
+        <div class="row"><label>اسم البند</label><input id="bLabel" type="text" placeholder="مثلًا: قاعة الفرح"></div>
+        <div class="row"><label>الفئة (اختياري)</label><input id="bCat" type="text" placeholder="فرح / جهاز / بيت / فواتير"></div>
+        <div class="row"><label>المبلغ المخطّط</label><input id="bPlanned" type="text" placeholder="0"></div>
+        <button class="btn" data-act="addBudget">أضِف بند</button>
+      </div>
+      <div id="bSummary"></div><div id="bList"><div class="empty">…تحميل</div></div>`;
+    await reloadBudget();
+  }
+  async function reloadBudget(){
+    try{
+      const items = await api("GET","/budget");
+      const planned = items.reduce((a,b)=>a+(+b.planned||0),0), paid = items.reduce((a,b)=>a+(+b.paid||0),0);
+      document.getElementById("bSummary").innerHTML = `<div class="card tight"><div class="actions">
+        <span class="pill">المخطّط: ${fmtMoney(planned)}</span><span class="pill warn">المدفوع: ${fmtMoney(paid)}</span>
+        <span class="pill dot ${planned-paid<=0?'':'warn'}">المتبقّي: ${fmtMoney(planned-paid)}</span></div></div>`;
+      const list = document.getElementById("bList");
+      list.innerHTML = items.length ? items.map(b=>{const rem=(+b.planned||0)-(+b.paid||0);return `
+        <div class="card tight"><div class="actions" style="justify-content:space-between"><h2 style="margin:0;font-size:17px">${esc(b.label)}</h2>
+          <button class="linkbtn" data-act="delBudget" data-id="${esc(b.id)}">حذف</button></div>
+          <div class="actions" style="margin-top:8px">${b.cat?`<span class="pill">${esc(b.cat)}</span>`:""}<span class="pill warn">مدفوع ${fmtMoney(b.paid)} / ${fmtMoney(b.planned)}</span>
+          <span class="pill dot ${rem<=0?'':'warn'}">${rem<=0?'مكتمل':'باقي '+fmtMoney(rem)}</span>
+          <div class="spacer"></div><button class="btn soft sm" data-act="payBudget" data-id="${esc(b.id)}">سجّل دفعة</button></div>
+        </div>`}).join("") : `<div class="empty">مفيش بنود. أضيفوا بنود الميزانية فوق.</div>`;
+    }catch(e){ document.getElementById("bList").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  async function renderShopping(){
+    S.view="shopping"; S.resourceId=null;
+    el.innerHTML = pageTitle("قائمة المشتريات","قائمة حيّة للبيت — الشطب بيظهر للطرفين.") + `
+      <div class="card tight"><div class="row"><label>الصنف</label><input id="sText" type="text" placeholder="حليب، بيض، إصلاح سباكة…"></div>
+        <button class="btn" data-act="addShop">أضِف</button></div>
+      <div id="sList"><div class="empty">…تحميل</div></div>`;
+    await reloadShopping();
+  }
+  async function reloadShopping(){
+    try{
+      const items = await api("GET","/shopping");
+      const list = document.getElementById("sList");
+      list.innerHTML = items.length ? items.map(s=>`
+        <div class="card tight"><div class="actions" style="justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px"><button class="btn ${s.done?'':'ghost'} sm" data-act="toggleShop" data-id="${esc(s.id)}">${s.done?'✓':'○'}</button>
+          <span style="${s.done?'text-decoration:line-through;opacity:.6':''}">${esc(s.text)}</span></div>
+          <button class="linkbtn" data-act="delShop" data-id="${esc(s.id)}">حذف</button></div></div>`).join("")
+        : `<div class="empty">القائمة فاضية. أضيفوا اللي البيت محتاجه.</div>`;
+    }catch(e){ document.getElementById("sList").innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+  async function renderSettings(){
+    S.view="settings"; S.resourceId=null;
+    el.innerHTML = pageTitle("الإعدادات","الخصوصية أولًا. بياناتكم ملككم.") + `
+      <div class="card"><div class="eyebrow">الميثاق</div><p class="muted" style="margin-top:-6px">كود ميثاقكم: <b>${esc(S.code||"—")}</b> — شاركه مع شريكك مرة واحدة فقط.</p></div>
+      <div class="card"><div class="eyebrow">بياناتك</div><h2>تصدير كل البيانات</h2>
+        <p class="muted" style="margin-top:-6px">المكتبة، القرارات، المهام، الميزانية، والمشتريات في ملف JSON واحد.</p>
+        <button class="btn" data-act="export">تصدير (JSON)</button></div>
+      <div class="card"><div class="eyebrow">الحساب</div><div class="actions"><button class="btn ghost" data-act="logout">تسجيل الخروج</button></div></div>`;
   }
 
   function renderOnboarding(){
@@ -432,7 +559,7 @@
       if(act==="create"){
         const name = (document.getElementById("nameC").value||"").trim();
         const out = await api("POST","/pair",{ email:"a@sakan.local", displayName:name||"أنا" });
-        S.token=out.token; S.code=out.pairCode; S.name=name; save(); S.view="library"; render();
+        S.token=out.token; S.code=out.pairCode; S.name=name; save(); S.view="home"; render();
         toast("تم إنشاء الميثاق — شارك الكود "+out.pairCode); return;
       }
       if(act==="join"){
@@ -440,7 +567,7 @@
         const code=(document.getElementById("codeJ").value||"").trim().toUpperCase();
         if(!code) return toast("أدخل الكود");
         const out = await api("POST","/pair/join",{ code, email:"b@sakan.local", displayName:name||"أنا" });
-        S.token=out.token; S.code=code; S.name=name; save(); S.view="library"; render();
+        S.token=out.token; S.code=code; S.name=name; save(); S.view="home"; render();
         toast("انضممت إلى الميثاق"); return;
       }
       if(act==="logout") return logout();
@@ -489,6 +616,49 @@
         toast("سُجّل القرار كمسودّة"); renderResource(); return;
       }
       if(act==="confirm"){ await api("POST","/decisions/"+node.dataset.d+"/confirm"); toast("سُجّلت موافقتك"); renderResource(); return; }
+
+      // ---- navigation to new pages ----
+      if(act==="home"){ S.view="home"; render(); return; }
+      if(act==="tasks"){ S.view="tasks"; render(); return; }
+      if(act==="budget"){ S.view="budget"; render(); return; }
+      if(act==="shopping"){ S.view="shopping"; render(); return; }
+      if(act==="settings"){ S.view="settings"; render(); return; }
+
+      // ---- tasks ----
+      if(act==="addTask"){
+        const title=(document.getElementById("tTitle").value||"").trim(); if(!title) return toast("اكتب المهمة");
+        const owner=(document.querySelector("#tOwner button.on")||{}).dataset?.own || "both";
+        const due=(document.getElementById("tDue").value||"").trim();
+        await api("POST","/tasks",{title,owner,due:due||null}); toast("أُضيفت المهمة"); renderTasks(); return;
+      }
+      if(act==="toggleTask"){ await api("POST","/tasks/"+node.dataset.id+"/toggle"); reloadTasks(); return; }
+      if(act==="delTask"){ await api("POST","/tasks/"+node.dataset.id+"/delete"); reloadTasks(); return; }
+
+      // ---- budget ----
+      if(act==="addBudget"){
+        const label=(document.getElementById("bLabel").value||"").trim(); if(!label) return toast("اكتب اسم البند");
+        const cat=(document.getElementById("bCat").value||"").trim();
+        const planned=parseFloat(document.getElementById("bPlanned").value)||0;
+        await api("POST","/budget",{label,cat:cat||null,planned}); toast("أُضيف البند"); renderBudget(); return;
+      }
+      if(act==="payBudget"){ const amt=parseFloat(prompt("قيمة الدفعة:","0"))||0; if(!amt) return; await api("POST","/budget/"+node.dataset.id+"/pay",{amount:amt}); reloadBudget(); return; }
+      if(act==="delBudget"){ await api("POST","/budget/"+node.dataset.id+"/delete"); reloadBudget(); return; }
+
+      // ---- shopping ----
+      if(act==="addShop"){ const text=(document.getElementById("sText").value||"").trim(); if(!text) return toast("اكتب الصنف"); await api("POST","/shopping",{text}); renderShopping(); return; }
+      if(act==="toggleShop"){ await api("POST","/shopping/"+node.dataset.id+"/toggle"); reloadShopping(); return; }
+      if(act==="delShop"){ await api("POST","/shopping/"+node.dataset.id+"/delete"); reloadShopping(); return; }
+
+      // ---- settings: export ----
+      if(act==="export"){
+        toast("جاري التصدير…");
+        const out={ exportedAt:new Date().toISOString() };
+        const grab=async(k,path)=>{ try{ out[k]=await api("GET",path); }catch(e){ out[k]=[]; } };
+        await Promise.all([grab("resources","/resources"),grab("decisions","/decisions"),grab("tasks","/tasks"),grab("budget","/budget"),grab("shopping","/shopping")]);
+        const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+        const link=document.createElement("a"); link.href=URL.createObjectURL(blob); link.download="sakan-export.json"; link.click(); URL.revokeObjectURL(link.href);
+        toast("تم التصدير"); return;
+      }
     }catch(e){
       if(e.code==="UNAUTHENTICATED"){ toast(errMsg(e)); return logout(); }
       toast(errMsg(e));
