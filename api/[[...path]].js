@@ -45,8 +45,9 @@ export default async function handler(req, res) {
     return;
   }
 
-  // API routes
-  const path = [].concat(req.query.path || []);
+  // API routes — strip 'api' prefix if present (from passthrough rewrites)
+  let path = [].concat(req.query.path || []);
+  if (path[0] === 'api') path = path.slice(1);
   const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || null;
   const body = (req.body && typeof req.body === 'object') ? req.body : {};
   const { status, body: out } = await handle({ method: req.method, path, body, token });
