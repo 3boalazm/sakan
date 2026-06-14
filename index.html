@@ -261,6 +261,34 @@
   footer.tiny{max-width:720px; margin:30px auto 0; padding:0 20px; color:var(--muted); font-size:12px; text-align:center}
   .api-edit{font-size:12px; color:var(--muted); margin-top:18px; text-align:center}
   .api-edit input{display:inline-block; width:auto; min-width:280px; font-size:12px; padding:6px 9px; margin-top:6px}
+
+  /* ========== QuickNotes ========== */
+  .qn-tabs{ display:flex; gap:6px; margin-bottom:18px; }
+  .qn-tab{ flex:1; border:none; border-radius:16px; padding:13px 10px; font-family:inherit; font-size:14px; font-weight:800; cursor:pointer; transition:all .2s;
+    background:rgba(255,255,255,.07); color:var(--text-muted); border:1px solid var(--line); }
+  .qn-tab.on{ background:linear-gradient(135deg,rgba(201,161,74,.22),rgba(42,122,95,.18)); color:var(--text); border-color:rgba(201,161,74,.45); box-shadow:0 4px 14px -4px rgba(201,161,74,.2); }
+  .qn-glass{ background:rgba(255,255,255,.05); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.11); border-radius:20px; padding:20px; margin-bottom:14px; }
+  [data-theme="light"] .qn-glass{ background:rgba(255,255,255,.55); border-color:rgba(201,161,74,.18); }
+  .qn-panel-label{ font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--gold); opacity:.85; margin:0 0 10px; }
+  .qn-input{ width:100%; box-sizing:border-box; padding:13px 16px; border-radius:14px; font-family:inherit; font-size:14.5px; resize:vertical; min-height:90px;
+    background:rgba(0,0,0,.15); border:1px solid rgba(255,255,255,.12); color:var(--text); outline:none; transition:border-color .2s, box-shadow .2s; }
+  [data-theme="light"] .qn-input{ background:rgba(255,255,255,.7); border-color:rgba(201,161,74,.25); }
+  .qn-input:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,161,74,.18); }
+  .qn-note{ display:flex; flex-direction:column; gap:4px; padding:14px 16px; border-radius:14px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); margin-bottom:10px; }
+  [data-theme="light"] .qn-note{ background:rgba(255,255,255,.65); border-color:rgba(201,161,74,.18); }
+  .qn-note-title{ font-weight:800; font-size:15px; color:var(--text); }
+  .qn-note-body{ font-size:14px; color:var(--text-muted); white-space:pre-wrap; word-break:break-word; }
+  .qn-note-meta{ font-size:11.5px; color:var(--text-muted); opacity:.6; display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .qn-add-row{ display:flex; gap:10px; flex-direction:column; margin-bottom:14px; }
+  .qn-title-inp{ width:100%; box-sizing:border-box; padding:11px 16px; border-radius:14px; font-family:inherit; font-size:15px; font-weight:700;
+    background:rgba(0,0,0,.15); border:1px solid rgba(255,255,255,.12); color:var(--text); outline:none; transition:border-color .2s, box-shadow .2s; }
+  [data-theme="light"] .qn-title-inp{ background:rgba(255,255,255,.7); border-color:rgba(201,161,74,.25); }
+  .qn-title-inp:focus{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,161,74,.18); }
+  .qn-del{ background:none; border:none; cursor:pointer; font-size:13px; color:var(--text-muted); opacity:.5; padding:2px 6px; border-radius:6px; transition:opacity .15s; }
+  .qn-del:hover{ opacity:1; color:#e57373; }
+  .qn-badge{ display:inline-flex; align-items:center; gap:4px; background:rgba(201,161,74,.15); border:1px solid rgba(201,161,74,.3); border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700; color:var(--gold); }
 </style>
 </head>
 <body>
@@ -363,7 +391,7 @@
     { items:[["home","الرئيسية","🏠"]] },
     { title:"رحلتنا", items:[["journeys","قوائمنا","▶️"],["library","المكتبة","📚"]] },
     { title:"الحوار والقرار", items:[["discussions","المناقشات","💬"],["decisionlog","القرارات","✅"],["charter","ميثاقنا","📜"]] },
-    { title:"حياتنا", items:[["connect","تواصلنا","💞"],["tasks","المهام","🗒️"],["budget","الميزانية","💰"],["shopping","المشتريات","🛒"]] },
+    { title:"حياتنا", items:[["connect","تواصلنا","💞"],["quicknotes","مفكّرتنا","📝"],["tasks","المهام","🗒️"],["budget","الميزانية","💰"],["shopping","المشتريات","🛒"]] },
     { title:"الإعدادات", items:[["settings","الإعدادات","⚙️"],["logout","خروج","↩️"]] },
   ];
   function renderDrawer(){
@@ -430,6 +458,7 @@
     if(S.view==="tasks") return renderTasks();
     if(S.view==="budget") return renderBudget();
     if(S.view==="shopping") return renderShopping();
+    if(S.view==="quicknotes") return renderQuickNotes();
     if(S.view==="settings") return renderSettings();
     return renderLibrary();
   }
@@ -527,6 +556,91 @@
       }
       document.getElementById("jBody").innerHTML = html;
     }catch(e){ document.getElementById("jBody").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
+
+
+  // ========== QuickNotes (مفكّرتنا) ==========
+  // localStorage helpers — بتشتغل من غير backend
+  function qnKey(scope){ return "sakan_qn_" + scope + "_" + (S.code||"local"); }
+  function qnLoad(scope){ try{ return JSON.parse(localStorage.getItem(qnKey(scope))||"[]"); }catch(e){ return []; } }
+  function qnSave(scope, arr){ try{ localStorage.setItem(qnKey(scope), JSON.stringify(arr)); }catch(e){} }
+  // للنوتس الخاصة بيك فقط (scope=private), نستخدم uid أيضاً
+  function qnKeyPriv(){ return "sakan_qn_private_" + (S.uid||"me"); }
+  function qnLoadPriv(){ try{ return JSON.parse(localStorage.getItem(qnKeyPriv())||"[]"); }catch(e){ return []; } }
+  function qnSavePriv(arr){ try{ localStorage.setItem(qnKeyPriv(), JSON.stringify(arr)); }catch(e){} }
+
+  async function renderQuickNotes(){
+    S.view="quicknotes"; S.resourceId=null;
+    const panel = S.qnPanel || "shared";
+    const myName = S.name || "أنا";
+    const isShared = panel==="shared";
+
+    el.innerHTML = pageTitle("مفكّرتنا","مساحة خاصة لكل منا — ومساحة مشتركة بيننا.")
+    + `<div class="qn-tabs">
+        <button class="qn-tab ${panel==='shared'?'on':''}" data-act="qnPanel" data-p="shared">🌿 مشتركة</button>
+        <button class="qn-tab ${panel==='private'?'on':''}" data-act="qnPanel" data-p="private">🔒 خاصتي</button>
+       </div>
+       <div id="qnBody"></div>`;
+
+    // Load notes
+    const notes = isShared ? qnLoad("shared") : qnLoadPriv();
+
+    const addCard = `
+      <div class="qn-glass">
+        <p class="qn-panel-label">${isShared?"📌 ملاحظة مشتركة جديدة":"🔒 ملاحظة خاصة بيك فقط"}</p>
+        <div class="qn-add-row">
+          <input id="qnTitleInp" class="qn-title-inp" placeholder="${isShared?'عنوان الملاحظة المشتركة…':'عنوان ملاحظتك الخاصة…'}" autocomplete="off">
+          <textarea id="qnBodyInp" class="qn-input" placeholder="${isShared?'اكتبوا هنا سوا — هيشوفها الاتنين 🌿':'اكتب هنا حاجة خاصة بيك — مش هيشوفها حد غيرك 🔒'}"></textarea>
+        </div>
+        <div class="actions"><span class="spacer"></span>
+          <button class="btn sm" data-act="qnAdd" data-scope="${panel}">+ أضِف ملاحظة</button>
+        </div>
+      </div>`;
+
+    const noteCards = notes.length
+      ? [...notes].reverse().map(n=>`
+          <div class="qn-note">
+            <div class="actions" style="align-items:flex-start;gap:6px;margin-bottom:0">
+              <div style="flex:1">
+                <div class="qn-note-title">${esc(n.title||"بدون عنوان")}</div>
+                <div class="qn-note-body" style="margin-top:7px">${esc(n.body||"")}</div>
+              </div>
+              <button class="qn-del" data-act="qnDel" data-id="${esc(n.id)}" data-scope="${panel}" title="حذف">✕</button>
+            </div>
+            <div class="qn-note-meta">
+              ${isShared?`<span class="qn-badge">👥 مشتركة</span>`:`<span class="qn-badge">🔒 خاصتك</span>`}
+              ${n.author?`<span>• ${esc(n.author)}</span>`:""}
+              ${n.ts?`<span>• ${new Date(n.ts).toLocaleDateString("ar-EG",{day:"numeric",month:"short",year:"numeric"})}</span>`:""}
+            </div>
+          </div>`).join("")
+      : `<p class="empty" style="text-align:center;padding:28px 0">${isShared?"لسه ما فيش ملاحظات مشتركة — ابدأوا بأول واحدة 🌿":"مساحتك الخاصة فاضية — اكتب حاجة ليك إنت بس 🔒"}</p>`;
+
+    document.getElementById("qnBody").innerHTML = addCard + noteCards;
+  }
+
+  function qnDoAdd(scope){
+    const title=(document.getElementById("qnTitleInp").value||"").trim();
+    const body=(document.getElementById("qnBodyInp").value||"").trim();
+    if(!body) return toast("اكتب ملاحظتك الأول");
+    const note = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), title:title||"ملاحظة", body, author:S.name||"", ts:Date.now() };
+    if(scope==="shared"){
+      const arr = qnLoad("shared"); arr.push(note); qnSave("shared", arr);
+      toast("أُضيفت للمشترك 🌿");
+    } else {
+      const arr = qnLoadPriv(); arr.push(note); qnSavePriv(arr);
+      toast("حُفظت خاصتك 🔒");
+    }
+    renderQuickNotes();
+  }
+
+  function qnDoDel(id, scope){
+    if(!confirm("تمسح الملاحظة دي؟")) return;
+    if(scope==="shared"){
+      const arr = qnLoad("shared").filter(n=>n.id!==id); qnSave("shared", arr);
+    } else {
+      const arr = qnLoadPriv().filter(n=>n.id!==id); qnSavePriv(arr);
+    }
+    S.qnPanel=scope; renderQuickNotes();
   }
 
   async function renderHome(){
@@ -1200,6 +1314,10 @@
       if(act==="discussions"){ S.view="discussions"; render(); return; }
       if(act==="decisionlog"){ S.view="decisionlog"; render(); return; }
       if(act==="connect"){ S.view="connect"; render(); return; }
+      if(act==="quicknotes"){ S.view="quicknotes"; S.qnPanel="shared"; render(); return; }
+      if(act==="qnPanel"){ S.qnPanel=node.dataset.p; renderQuickNotes(); return; }
+      if(act==="qnAdd"){ qnDoAdd(node.dataset.scope||"shared"); return; }
+      if(act==="qnDel"){ qnDoDel(node.dataset.id, node.dataset.scope||"shared"); return; }
       if(act==="charter"){ S.view="charter"; render(); return; }
 
       if(act==="addCharter"){ const k=node.dataset.kind; const inp=document.getElementById("ch_"+k); const t=(inp&&inp.value||"").trim(); if(!t) return toast("اكتب حاجة الأول"); await api("POST","/charter",{kind:k,text:t}); renderCharter(); return; }
