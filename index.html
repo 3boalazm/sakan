@@ -67,6 +67,14 @@
   .bar-actions{flex:1; min-width:0; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); flex-wrap:nowrap; justify-content:flex-end; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch}
   .bar-actions::-webkit-scrollbar{display:none}
   .bar-actions>*{flex:none}
+  .greet{text-align:center; padding:30px 22px}
+  .greet .hi{color:var(--muted); font-size:13px; letter-spacing:2px}
+  .namecal{display:flex; justify-content:center; margin:6px 0 2px}
+  .namecal img{height:66px; width:auto; max-width:78%; object-fit:contain}
+  .namecal .ink-dark{display:block} .namecal .ink-light{display:none}
+  [data-theme="dark"] .namecal .ink-dark,[data-theme="oled"] .namecal .ink-dark{display:none}
+  [data-theme="dark"] .namecal .ink-light,[data-theme="oled"] .namecal .ink-light{display:block}
+  @media(max-width:560px){ .namecal img{height:52px} }
   .chip{background:var(--green-pale); color:var(--primary-ink); border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:500; border:1px solid var(--line); white-space:nowrap}
   .linkbtn{background:none; border:none; color:var(--muted); cursor:pointer; font:inherit; font-size:13px; white-space:nowrap}
   .linkbtn:hover{color:var(--ink)}
@@ -288,6 +296,30 @@
   const PRIO_AR = { high:"عالية", medium:"متوسطة", later:"لاحقًا" };
   const PRIO_W  = { high:0, medium:1, later:2 };
   const TYPE_ICON = { course:"🎓", book:"📖", video:"🎬", pdf:"📄", article:"📰" };
+  const hasYt = r => /youtu\.?be/.test(r.link||"");
+  function progPill(st, who){ const done=st==='completed'; return `<span class="pill dot ${done?'':'warn'}" title="${who}: ${STATE_AR[st]||st}">${done?who+' ✓':(st==='in_progress'?who+' •':who)}</span>`; }
+  function dualProg(p){ p=p||{mine:'not_started',partner:'not_started'}; return `<span style="display:inline-flex;gap:6px;flex:none;align-items:center">${progPill(p.mine,'أنا')}${progPill(p.partner,'شريكي')}</span>`; }
+  function ytMark(r){ return hasYt(r)?`<span title="يوتيوب" style="color:#e23;flex:none;font-size:13px">▶</span> `:""; }
+  // أصول الأسماء: Asset 1 = ضحى، Asset 2 = مصطفى. لايت → خط داكن (media/dark)، دارك → خط فاتح (media/light)
+  function nameCal(){
+    const n = S.name||"";
+    const idx = /ضحى|ضحي/.test(n) ? 1 : (/مصطف/.test(n) ? 2 : 0);
+    if(!idx) return "";
+    const dark = "/media/dark/Asset%20"+idx+".svg";
+    const light = "/media/light/Asset%20"+idx+"%20L.svg";
+    const alt = idx===1 ? "ضحى" : "مصطفى";
+    return `<div class="namecal"><img class="ink-dark" src="${dark}" alt="${alt}" loading="lazy"><img class="ink-light" src="${light}" alt="${alt}" loading="lazy"></div>`;
+  }
+  function greetHero(){
+    const n = S.name||"";
+    const cal = nameCal();
+    if(cal){
+      const sub = /ضحى|ضحي/.test(n) ? "نوّرتِ سكن 🌿" : "نوّرت سكن 🌿";
+      return `<div class="card greet"><div class="hi">أهلًا</div>${cal}<p class="muted" style="margin:8px 0 0">${sub}</p></div>`;
+    }
+    const who = (n && n!=="أنا") ? esc(n) : "بكم في سكن";
+    return `<div class="card greet"><div class="hi">أهلًا</div><h1 class="display" style="margin:4px 0 0">${who}</h1></div>`;
+  }
 
   async function renderJourneys(){
     S.view="journeys"; S.resourceId=null;
@@ -303,18 +335,18 @@
       }
       for(const st of STAGES){
         const inStage = items.filter(r=> Number(r.stage)===st.n)
-          .sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (a.createdAt-b.createdAt));
+          .sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (hasYt(b)-hasYt(a)) || (a.createdAt-b.createdAt));
         if(!inStage.length) continue;
-        const done = inStage.filter(r=>r.status==="completed").length;
+        const done = inStage.filter(r=> r.prog && r.prog.mine==='completed' && r.prog.partner==='completed').length;
         html += `<div class="eyebrow" style="margin-top:24px">المرحلة ${st.n} · ${esc(st.title)}</div>
-          <p class="muted" style="margin:-2px 0 10px">${esc(st.theme)} — <b>${done}/${inStage.length}</b> مكتمل</p>`
+          <p class="muted" style="margin:-2px 0 10px">${esc(st.theme)} — <b>${done}/${inStage.length}</b> أنهيتماه معًا</p>`
           + inStage.map(r=>`<div class="card res" data-open="${esc(r.id)}">
               <div style="display:flex;gap:12px;align-items:center;flex:1;min-width:0">
                 <span style="font-size:22px;flex:none">${TYPE_ICON[r.type]||"📄"}</span>
-                <div style="min-width:0"><h2 style="margin:0;font-size:17px">${esc(r.title)}</h2>
+                <div style="min-width:0"><h2 style="margin:0;font-size:17px">${ytMark(r)}${esc(r.title)}</h2>
                 <div class="meta">${r.speaker?esc(r.speaker)+" · ":""}${r.episodes?esc(r.episodes)+" حلقة":""}</div></div>
               </div>
-              <div style="display:flex;gap:6px;flex:none;align-items:center">${r.priority?`<span class="pill warn">${PRIO_AR[r.priority]||esc(r.priority)}</span>`:""}<span class="pill dot ${r.status==='completed'?'':'warn'}">${STATE_AR[r.status]||esc(r.status)}</span></div>
+              <div style="display:flex;gap:6px;flex:none;align-items:center">${r.priority?`<span class="pill warn">${PRIO_AR[r.priority]||esc(r.priority)}</span>`:""}${dualProg(r.prog)}</div>
             </div>`).join("");
       }
       document.getElementById("jBody").innerHTML = html || `<div class="empty">مفيش موارد بمراحل بعد. استورد المنهج أو ضِف موردًا وحدّد مرحلته.</div>`;
@@ -323,19 +355,20 @@
 
   async function renderHome(){
     S.view="home"; S.resourceId=null;
-    el.innerHTML = pageTitle("الرئيسية","ده اللي مستني دوركم — سكن بيجيبلكم المهم، ما بيدفعش إشعارات.") + `<div id="loops"><div class="empty">…تحميل</div></div>`;
+    el.innerHTML = greetHero() + `<div id="loops"><div class="empty">…تحميل</div></div>`;
     try{
       const items = await api("GET","/resources");
-      const open = items.filter(r=> r.status!=="completed");
+      const bothDone = r => r.prog && r.prog.mine==='completed' && r.prog.partner==='completed';
+      const open = items.filter(r=> !bothDone(r));
       const box = document.getElementById("loops");
       if(!open.length){ box.innerHTML = `<div class="empty">مفيش حلقات مفتوحة 🌿 خلّصتوا كل المواد المضافة. تقدروا تضيفوا مورد جديد من المكتبة.</div>`; return; }
       box.innerHTML = `<div class="eyebrow" style="margin-bottom:10px">حلقات مفتوحة</div>` + open.slice(0,8).map(r=>`
         <div class="card res" data-open="${esc(r.id)}">
           <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
             ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : "" }
-            <div style="min-width:0"><h2 style="margin:0">${esc(r.title)}</h2><div class="meta">${r.link?esc(r.link):"بدون رابط"}</div></div>
+            <div style="min-width:0"><h2 style="margin:0">${ytMark(r)}${esc(r.title)}</h2><div class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.link?esc(r.link):"بدون رابط"}</div></div>
           </div>
-          <span class="pill dot warn" style="flex:none">${STATE_AR[r.status]||esc(r.status)}</span>
+          ${dualProg(r.prog)}
         </div>`).join("");
     }catch(e){ document.getElementById("loops").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
   }
@@ -485,15 +518,16 @@
       </div>`;
     try{
       const items = await api("GET","/resources");
+      items.sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (hasYt(b)-hasYt(a)) || (b.createdAt-a.createdAt));
       const list = document.getElementById("list");
       if(!items.length){ list.innerHTML = `<div class="empty">لا توجد موارد بعد. أضِف أول مورد بالأسفل لتبدآ.</div>`; return; }
       list.innerHTML = items.map(r=>`
         <div class="card res" data-open="${esc(r.id)}">
           <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
             ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : "" }
-            <div style="min-width:0"><h2 style="margin:0">${esc(r.title)}</h2><div class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.link?esc(r.link):"بدون رابط"}</div></div>
+            <div style="min-width:0"><h2 style="margin:0">${ytMark(r)}${esc(r.title)}</h2><div class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.link?esc(r.link):"بدون رابط"}</div></div>
           </div>
-          <span class="pill dot ${r.status==='completed'?'':'warn'}" style="flex:none">${STATE_AR[r.status]||esc(r.status)}</span>
+          <div style="display:flex;gap:6px;flex:none;align-items:center">${r.priority?`<span class="pill warn">${PRIO_AR[r.priority]||esc(r.priority)}</span>`:""}${dualProg(r.prog)}</div>
         </div>`).join("");
     }catch(e){ document.getElementById("list").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
   }
@@ -504,10 +538,20 @@
     catch(e){ el.innerHTML = `<div class="empty">${esc(errMsg(e))}</div><button class="btn ghost" data-act="library">رجوع</button>`; return; }
     const r = S.detail.resource;
     const emb = ytEmbed(r.link);
+    const pg = r.prog || {mine:'not_started',partner:'not_started'};
+    const pgBtn = (v,lbl)=>`<button data-act="setProg" data-val="${v}" style="width:auto;padding:0 11px" class="${pg.mine===v?'on':''}">${lbl}</button>`;
+    const prBtn = (v,lbl)=>`<button data-act="setPrio" data-val="${v}" style="width:auto;padding:0 11px" class="${r.priority===v?'on':''}">${lbl}</button>`;
     el.innerHTML = `
       <button class="linkbtn" data-act="library">→ المكتبة</button>
-      <h1 class="display" style="margin-top:8px">${esc(r.title)}</h1>
-      <span class="pill dot ${r.status==='completed'?'':'warn'}">${STATE_AR[r.status]||esc(r.status)}</span>
+      <h1 class="display" style="margin-top:8px">${ytMark(r)}${esc(r.title)}</h1>
+      <div class="card tight" style="display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center">
+        <span class="muted" style="flex:none">متابعتي:</span>
+        <div class="themesw">${pgBtn('not_started','لم أبدأ')}${pgBtn('in_progress','أشاهد')}${pgBtn('completed','أنهيت ✓')}</div>
+        <span class="muted" style="flex:none">شريكي:</span> ${progPill(pg.partner,'شريكي')}
+        <span class="spacer"></span>
+        <span class="muted" style="flex:none">الأولوية:</span>
+        <div class="themesw">${prBtn('high','عالية')}${prBtn('medium','متوسطة')}${prBtn('later','لاحقًا')}</div>
+      </div>
       ${ emb ? `<div style="margin-top:14px;border-radius:var(--radius-sm);overflow:hidden;aspect-ratio:16/9;background:#000"><iframe src="${emb}" style="width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`
             : (r.link ? `<div style="margin-top:8px"><a class="linkbtn" href="${esc(r.link)}" target="_blank" rel="noopener">فتح المصدر ↗</a></div>` : "") }
       <div class="tabs">
@@ -753,6 +797,9 @@
       }
       if(act==="logout") return logout();
       if(act==="library"){ S.view="library"; S.tab="summary"; render(); return; }
+
+      if(act==="setProg"){ await api("PUT","/resources/"+S.resourceId+"/progress",{ status:node.dataset.val }); renderResource(); return; }
+      if(act==="setPrio"){ await api("PUT","/resources/"+S.resourceId+"/priority",{ priority:node.dataset.val }); toast("اتحدّثت الأولوية"); renderResource(); return; }
 
       if(act==="addRes"){
         const title=(document.getElementById("rTitle").value||"").trim();

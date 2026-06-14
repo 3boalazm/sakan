@@ -35,6 +35,19 @@ const server = http.createServer(async (req, res) => {
       } catch {}
       res.writeHead(404, CORS); return res.end();
     }
+    if (url.pathname.startsWith('/media/')) {
+      try {
+        const rel = decodeURIComponent(url.pathname).replace(/\.\.+/g, '');
+        const fs = await import('node:fs/promises');
+        const pathMod = await import('node:path');
+        const file = pathMod.join(process.cwd(), rel);
+        const data = await fs.readFile(file);
+        const ct = file.toLowerCase().endsWith('.svg') ? 'image/svg+xml'
+          : file.toLowerCase().endsWith('.png') ? 'image/png' : 'application/octet-stream';
+        res.writeHead(200, { 'content-type': ct, 'cache-control': 'public, max-age=86400', ...CORS });
+        return res.end(data);
+      } catch { res.writeHead(404, CORS); return res.end(); }
+    }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...CORS });
     return res.end(PAGE);
   }
