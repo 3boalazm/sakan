@@ -78,11 +78,11 @@
   .brandcal svg{height:22px; width:auto}
   [data-theme="dark"] .brandcal,[data-theme="oled"] .brandcal{color:#fff}
   @media(max-width:560px){ .brandcal{display:none} }
-  /* ===== الهامبرجر + تكبير منيو الديسكتوب ===== */
-  .hamburger{display:none; flex:none; background:transparent; border:none; color:var(--ink); font-size:23px; cursor:pointer; padding:2px 8px; border-radius:10px; line-height:1}
-  .hamburger:hover{background:var(--primary-soft)}
-  .bar-actions .linkbtn{font-size:15px; padding:9px 13px}
-  @media(max-width:768px){ .hamburger{display:flex} .bar-actions{display:none} }
+  /* ===== الهامبرجر + الدرّ هو المنيو على الموبايل والديسكتوب ===== */
+  .hamburger{display:flex; align-items:center; justify-content:center; flex:none; background:var(--primary-soft); border:none; color:var(--ink); font-size:22px; cursor:pointer; width:42px; height:42px; border-radius:12px; line-height:1}
+  .hamburger:hover{background:var(--primary-soft); filter:brightness(.96)}
+  .bar-actions{display:none !important}
+  @media(min-width:769px){ .drawer{width:360px} .dw-link{font-size:17px; padding:14px 16px} }
   /* ===== الدرج الجانبي (تقسيم زي زاد) ===== */
   .drawer-bg{position:fixed; inset:0; background:rgba(6,23,15,.55); backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .25s; z-index:998}
   .drawer-bg.open{opacity:1; pointer-events:auto}
@@ -106,6 +106,39 @@
   .dw-link.active{background:linear-gradient(135deg,rgba(201,161,74,.28),rgba(42,122,95,.22)); color:#fff; font-weight:800; box-shadow:inset 0 0 0 1px rgba(201,161,74,.4)}
   .dw-ico{font-size:18px; width:34px; height:34px; flex:none; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.1); border-radius:10px}
   .dw-link.active .dw-ico{background:linear-gradient(135deg,#c9a14a,#1f5e4b)}
+  .drawer .dw-theme{display:inline-flex; gap:6px; background:rgba(255,255,255,.08); padding:5px; border-radius:12px}
+  .drawer .dw-theme button{background:transparent; border:none; color:#f4ecd6; font-size:16px; width:40px; height:34px; border-radius:9px; cursor:pointer}
+  .drawer .dw-theme button.on{background:rgba(201,161,74,.32)}
+  /* ===== شاشة الدخول (Auth) الفخمة ===== */
+  :root{ --auth-img:url('/media/auth-bg.jpg'); }
+  body.pre-auth{ background:
+    radial-gradient(circle 520px at 86% -4%, rgba(201,161,74,.22), transparent 60%),
+    radial-gradient(circle 640px at 0% 106%, rgba(42,122,95,.34), transparent 60%),
+    linear-gradient(165deg, rgba(11,48,36,.95), rgba(26,93,71,.90)),
+    var(--auth-img, none), #0b3024;
+    background-size:auto,auto,auto,cover,auto; background-position:center; background-repeat:no-repeat; background-attachment:fixed; }
+  body.pre-auth header, body.pre-auth #foot{ display:none !important; }
+  .auth{ max-width:432px; margin:0 auto; padding:38px 4px 26px; animation:authIn .5s cubic-bezier(.22,.68,0,1) both; }
+  @keyframes authIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  .auth-brand{ text-align:center; margin-bottom:18px; }
+  .auth-logo{ font-family:'ThmanyahSerifDisplay',serif; font-size:56px; font-weight:700; color:#fff; line-height:1; text-shadow:0 6px 28px rgba(0,0,0,.35); }
+  .auth-tag{ color:rgba(244,236,214,.88); font-size:14px; margin:10px 0 0; }
+  .auth-card{ background:#fdfaf3; border:1px solid rgba(201,161,74,.3); border-radius:24px; padding:22px 20px 24px; box-shadow:0 34px 84px -22px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.5); }
+  .auth-tabs{ display:flex; gap:4px; background:#efe7d5; border-radius:14px; padding:5px; margin-bottom:18px; }
+  .auth-tab{ flex:1; border:none; background:transparent; color:#5c6e54; font-family:inherit; font-size:13px; font-weight:800; padding:10px 6px; border-radius:10px; cursor:pointer; transition:all .2s; }
+  .auth-tab.on{ background:linear-gradient(135deg,#0e3b2e,#1f5e4b); color:#fff; box-shadow:0 4px 12px -3px rgba(14,59,46,.5); }
+  .auth-field{ display:flex; align-items:center; gap:10px; background:#fff; border:1.5px solid #e6dcc6; border-radius:13px; padding:0 12px; margin-bottom:11px; transition:border-color .2s, box-shadow .2s; }
+  .auth-field:focus-within{ border-color:#c9a14a; box-shadow:0 0 0 3px rgba(201,161,74,.18); }
+  .auth-field .af-ico{ font-size:16px; flex:none; opacity:.7; }
+  .auth-field input{ flex:1; min-width:0; border:none; background:transparent; padding:13px 0; font-family:inherit; font-size:15px; color:#13261d; outline:none; }
+  .auth-field .af-eye{ background:none; border:none; cursor:pointer; font-size:15px; opacity:.65; padding:4px; flex:none; }
+  .auth-btn{ width:100%; border:none; border-radius:14px; padding:14px; font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; margin-top:6px; color:#fff; background:linear-gradient(135deg,#0e3b2e,#2a7a5f); box-shadow:0 10px 24px -8px rgba(14,59,46,.6); transition:transform .15s, box-shadow .2s; }
+  .auth-btn:hover{ transform:translateY(-1px); box-shadow:0 14px 30px -8px rgba(14,59,46,.7); }
+  .auth-btn:active{ transform:translateY(0); }
+  .auth-btn.ghost{ background:linear-gradient(135deg,#c9a14a,#e6c97a); color:#3a2c08; }
+  .auth-hint{ text-align:center; color:#8a9580; font-size:12.5px; margin:12px 0 0; }
+  .auth-foot{ text-align:center; color:rgba(244,236,214,.72); font-size:12px; margin-top:20px; }
+  .auth-api{ display:block; margin:8px auto 0; color:rgba(244,236,214,.6) !important; font-size:11px; }
   .chip{background:var(--green-pale); color:var(--primary-ink); border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:500; border:1px solid var(--line); white-space:nowrap}
   .linkbtn{background:none; border:none; color:var(--muted); cursor:pointer; font:inherit; font-size:13px; white-space:nowrap}
   .linkbtn:hover{color:var(--ink)}
@@ -299,7 +332,14 @@
       if(!sec.title) return `<div class="dw-group">${links}</div>`;
       return `<div class="dw-sep" data-dwsec>${esc(sec.title)}<span class="dw-arrow">▾</span></div><div class="dw-group">${links}</div>`;
     }).join("");
+    html += `<div class="dw-sep" style="cursor:default">السمة</div>
+      <div class="themesw dw-theme" role="group" aria-label="السمة" style="margin:4px 8px">
+        <button data-set-theme="light" title="فاتح">☀️</button>
+        <button data-set-theme="dark" title="داكن">🌙</button>
+        <button data-set-theme="oled" title="OLED">⚫</button></div>`;
+    html += `<div class="dw-foot" style="color:rgba(244,236,214,.5);font-size:12px;text-align:center;margin-top:18px">سكن · مساحتنا إحنا الاتنين 🌿</div>`;
     d.innerHTML = html;
+    markTheme();
   }
   function openDrawer(){ renderDrawer(); document.getElementById("drawerBg").hidden=false; const d=document.getElementById("drawer"); requestAnimationFrame(()=>{ d.classList.add("open"); document.getElementById("drawerBg").classList.add("open"); }); document.body.style.overflow="hidden"; }
   function closeDrawer(){ const d=document.getElementById("drawer"), bg=document.getElementById("drawerBg"); if(d) d.classList.remove("open"); if(bg){ bg.classList.remove("open"); setTimeout(()=>{ if(bg) bg.hidden=true; },260); } document.body.style.overflow=""; }
@@ -307,28 +347,11 @@
   // ---------- header ----------
   function renderBar(){
     const b = document.getElementById("barActions");
-    const sw = `<div class="themesw" role="group" aria-label="السمة">
-      <button data-set-theme="light" title="فاتح">☀️</button>
-      <button data-set-theme="dark" title="داكن">🌙</button>
-      <button data-set-theme="oled" title="OLED">⚫</button></div>`;
-    const head = S.token
-      ? (S.code? `<span class="chip" title="شارِك هذا الكود مع شريكك">كود الميثاق: ${esc(S.code)}</span>`:"")
-        + `<button class="linkbtn" data-act="home">الرئيسية</button>`
-        + `<button class="linkbtn" data-act="journeys">الرحلة</button>`
-        + `<button class="linkbtn" data-act="library">المكتبة</button>`
-        + `<button class="linkbtn" data-act="discussions">المناقشات</button>`
-        + `<button class="linkbtn" data-act="decisionlog">القرارات</button>`
-        + `<button class="linkbtn" data-act="charter">ميثاقنا</button>`
-        + `<button class="linkbtn" data-act="connect">تواصلنا</button>`
-        + `<button class="linkbtn" data-act="tasks">المهام</button>`
-        + `<button class="linkbtn" data-act="budget">الميزانية</button>`
-        + `<button class="linkbtn" data-act="shopping">المشتريات</button>`
-        + `<button class="linkbtn" data-act="settings">الإعدادات</button>`
-        + `<button class="linkbtn" data-act="logout">خروج</button>`
-      : "";
-    b.innerHTML = head + sw;
+    if(b) b.innerHTML = "";   // النav بقى في الدرّ الجانبي
     const bn = document.getElementById("brandName");
     if(bn){ const idx = S.token ? (/ضحى|ضحي/.test(S.name||"")?1:(/مصطف/.test(S.name||"")?2:0)) : 0; const src = idx? document.querySelector('#nameAssets [data-ni="'+idx+'"]') : null; bn.innerHTML = src? src.outerHTML : ""; }
+    const hb = document.querySelector(".hamburger"); if(hb) hb.style.display = S.token ? "flex" : "none";
+    renderDrawer();
     markTheme();
   }
   function markTheme(){
