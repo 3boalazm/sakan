@@ -23,6 +23,18 @@ const server = http.createServer(async (req, res) => {
   // serve the Arabic app for any non-API GET request (so the domain shows the UI, not JSON)
   if (req.method === 'GET' && !url.pathname.startsWith('/api')) {
     if (url.pathname === '/favicon.ico') { res.writeHead(204, CORS); return res.end(); }
+    if (url.pathname.startsWith('/fonts/')) {
+      const name = url.pathname.slice('/fonts/'.length);
+      try {
+        const { FONTS } = await import('./lib/fonts.js');   // lazy: only loaded on first font request
+        const b64 = FONTS[name];
+        if (b64) {
+          res.writeHead(200, { 'content-type': 'font/otf', 'cache-control': 'public, max-age=31536000, immutable', ...CORS });
+          return res.end(Buffer.from(b64, 'base64'));
+        }
+      } catch {}
+      res.writeHead(404, CORS); return res.end();
+    }
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...CORS });
     return res.end(PAGE);
   }
