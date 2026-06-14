@@ -2,8 +2,43 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>سكن</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>سكن — مساحتنا</title>
+
+<!-- ════ PWA ════ -->
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#1e3a2f" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0d1f18" media="(prefers-color-scheme: dark)" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="سكن" />
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
+
+<!-- ════ SEO & Share ════ -->
+<meta name="description" content="مساحتنا إحنا الاتنين بس — نتعلّم، نتناقش، ونتفق." />
+<meta name="application-name" content="سكن" />
+<meta property="og:title" content="سكن — مساحتنا" />
+<meta property="og:description" content="مساحتنا إحنا الاتنين بس — نتعلّم، نتناقش، ونتفق." />
+<meta property="og:image" content="/icons/icon-512x512.png" />
+<meta property="og:type" content="website" />
+
+<!-- ════ Safe area (iPhone notch) ════ -->
+<style>
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+  body { padding-bottom: var(--sab); }
+</style>
+
+<!-- ════ Theme init (before render) ════ -->
 <script>(function(){try{var t=localStorage.getItem('sakan_theme')||'light';document.documentElement.setAttribute('data-theme',['light','dark','oled'].indexOf(t)>=0?t:'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -343,5 +378,182 @@
 <script src="/js/sakan-core.js"></script>
 <script src="/js/sakan-pages1.js"></script>
 <script src="/js/sakan-pages2.js"></script>
+
+<!-- ════ PWA: Service Worker + Install Prompt ════ -->
+<script>
+(function(){
+  'use strict';
+
+  // ── Register Service Worker ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then(reg => {
+          console.log('[سكن] SW registered:', reg.scope);
+          // Check for updates every 60s when app is open
+          setInterval(() => reg.update(), 60_000);
+          reg.addEventListener('updatefound', () => {
+            const worker = reg.installing;
+            worker.addEventListener('statechange', () => {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateToast(worker);
+              }
+            });
+          });
+        })
+        .catch(err => console.warn('[سكن] SW error:', err));
+
+      // When new SW takes over — reload
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    });
+  }
+
+  // ── Update toast ──
+  function showUpdateToast(worker) {
+    const existing = document.getElementById('pwa-update-toast');
+    if (existing) return;
+    const toast = document.createElement('div');
+    toast.id = 'pwa-update-toast';
+    toast.style.cssText = [
+      'position:fixed;bottom:calc(24px + var(--sab,0px));left:50%;transform:translateX(-50%)',
+      'background:linear-gradient(135deg,#1e3a2f,#2a5c42);color:#f4ecd6',
+      'border:1px solid rgba(201,161,74,.5);border-radius:16px',
+      'padding:12px 20px;font-family:ThmanyahSans,Tajawal,sans-serif;font-size:14px',
+      'display:flex;align-items:center;gap:12px;z-index:9999',
+      'box-shadow:0 8px 32px rgba(0,0,0,.4);direction:rtl',
+    ].join(';');
+    toast.innerHTML = `
+      <span>🌿 تحديث جديد لسكن جاهز</span>
+      <button onclick="this.closest('#pwa-update-toast').remove()" 
+        style="background:rgba(255,255,255,.1);border:1px solid rgba(201,161,74,.4);
+               color:#e6c97a;border-radius:10px;padding:5px 14px;cursor:pointer;
+               font-family:inherit;font-size:13px;font-weight:700">تحديث</button>
+    `;
+    toast.querySelector('button').addEventListener('click', () => {
+      worker.postMessage({ type: 'SKIP_WAITING' });
+      toast.remove();
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 12_000);
+  }
+
+  // ── Install Prompt (Android Chrome) ──
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallBanner();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    hideInstallBanner();
+    deferredPrompt = null;
+    // Small celebration toast
+    const t = document.getElementById('toast');
+    if (t) { t.textContent = 'سكن اتثبّت على موبايلك 🎉'; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 3000); }
+  });
+
+  function showInstallBanner() {
+    if (document.getElementById('pwa-install-banner')) return;
+    // Don't show if already installed (standalone mode)
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (window.navigator.standalone === true) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-banner';
+    banner.style.cssText = [
+      'position:fixed;bottom:calc(16px + var(--sab,0px));left:50%;transform:translateX(-50%)',
+      'width:calc(100% - 32px);max-width:420px',
+      'background:rgba(10,28,20,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)',
+      'border:1px solid rgba(201,161,74,.4);border-radius:20px',
+      'padding:16px 18px;display:flex;align-items:center;gap:14px;z-index:9998',
+      'box-shadow:0 12px 40px rgba(0,0,0,.5);direction:rtl',
+      'animation:slideUp .35s cubic-bezier(.22,.68,0,1.2) both',
+    ].join(';');
+    banner.innerHTML = `
+      <style>@keyframes slideUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}</style>
+      <img src="/icons/icon-72x72.png" width="48" height="48" style="border-radius:12px;flex:none" alt="سكن">
+      <div style="flex:1;min-width:0">
+        <div style="color:#fff;font-family:ThmanyahSerifDisplay,serif;font-size:16px;font-weight:700">ثبّت سكن</div>
+        <div style="color:rgba(244,236,214,.7);font-size:12.5px;margin-top:2px">على الشاشة الرئيسية زي أي تطبيق</div>
+      </div>
+      <button id="pwa-install-btn"
+        style="background:linear-gradient(135deg,#c9a14a,#e6c97a);color:#1e3a2f;border:none;
+               border-radius:12px;padding:10px 16px;font-family:ThmanyahSans,Tajawal,sans-serif;
+               font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap">تثبيت</button>
+      <button id="pwa-dismiss-btn"
+        style="background:none;border:none;color:rgba(244,236,214,.5);cursor:pointer;
+               font-size:20px;padding:4px;line-height:1">✕</button>
+    `;
+
+    banner.querySelector('#pwa-install-btn').addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log('[سكن] Install outcome:', outcome);
+      deferredPrompt = null;
+      banner.remove();
+    });
+
+    banner.querySelector('#pwa-dismiss-btn').addEventListener('click', () => {
+      banner.remove();
+      // Don't show again for 7 days
+      localStorage.setItem('pwa_dismissed', Date.now() + 7*24*60*60*1000);
+    });
+
+    // Respect dismiss preference
+    const dismissed = parseInt(localStorage.getItem('pwa_dismissed') || '0');
+    if (Date.now() < dismissed) return;
+
+    document.body.appendChild(banner);
+    // Auto-hide after 15s
+    setTimeout(() => banner?.remove(), 15_000);
+  }
+
+  function hideInstallBanner() {
+    document.getElementById('pwa-install-banner')?.remove();
+  }
+
+  // ── iOS Safari install hint ──
+  function showIOSHint() {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = window.navigator.standalone;
+    const dismissed = parseInt(localStorage.getItem('ios_hint_dismissed') || '0');
+    if (!isIOS || isStandalone || Date.now() < dismissed) return;
+
+    const hint = document.createElement('div');
+    hint.id = 'pwa-ios-hint';
+    hint.style.cssText = [
+      'position:fixed;bottom:calc(16px + var(--sab,0px));left:50%;transform:translateX(-50%)',
+      'width:calc(100% - 32px);max-width:400px',
+      'background:rgba(10,28,20,.92);backdrop-filter:blur(20px)',
+      'border:1px solid rgba(201,161,74,.35);border-radius:18px',
+      'padding:16px 18px;z-index:9998;direction:rtl',
+      'box-shadow:0 12px 40px rgba(0,0,0,.5)',
+    ].join(';');
+    hint.innerHTML = `
+      <div style="color:#f4ecd6;font-family:ThmanyahSans,Tajawal,sans-serif;font-size:14px;font-weight:700;margin-bottom:8px">ثبّت سكن على iPhone</div>
+      <div style="color:rgba(244,236,214,.75);font-size:13px;line-height:1.6">
+        اضغط على زر المشاركة <span style="font-size:16px">⎋</span> في سفارى
+        ثم اختر <b style="color:#e6c97a">«أضف إلى الشاشة الرئيسية»</b>
+      </div>
+      <button onclick="this.parentElement.remove();localStorage.setItem('ios_hint_dismissed',Date.now()+7*24*60*60*1000)"
+        style="margin-top:12px;background:rgba(255,255,255,.1);border:1px solid rgba(201,161,74,.3);
+               color:#e6c97a;border-radius:10px;padding:6px 16px;cursor:pointer;
+               font-family:inherit;font-size:13px;font-weight:700;width:100%">فهمت 👍</button>
+    `;
+    document.body.appendChild(hint);
+    setTimeout(() => hint?.remove(), 20_000);
+  }
+
+  // Show iOS hint after 3s if not installed
+  setTimeout(showIOSHint, 3000);
+
+})();
+</script>
+
 </body>
 </html>
