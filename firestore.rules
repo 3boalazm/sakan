@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // كل البيانات تنتمي لـ "couple". كل مستخدم عضو في couple واحد فقط.
+    function myCouple() {
+      return get(/databases/$(db)/documents/users/$(request.auth.uid)).data.coupleId;
+    }
+    function signedIn() { return request.auth != null; }
+    function inCouple(coupleId) { return signedIn() && myCouple() == coupleId; }
+
+    // ملف المستخدم: تقرأه إنت + شريكك في نفس الـ couple؛ تكتبه إنت فقط.
+    match /users/{uid} {
+      allow read:  if signedIn() && (uid == request.auth.uid ||
+                     get(/databases/$(db)/documents/users/$(uid)).data.coupleId == myCouple());
+      allow write: if signedIn() && uid == request.auth.uid;
+    }
+
+    // الموارد، الملخصات، الملاحظات المشتركة، القرارات: للزوجين فقط (لا أطراف ثالثة).
+    match /couples/{coupleId}/resources/{doc}   { allow read, write: if inCouple(coupleId); }
+    match /couples/{coupleId}/summaries/{doc}   { allow read, write: if inCouple(coupleId); }
+    match /couples/{coupleId}/sharedNotes/{doc} { allow read, write: if inCouple(coupleId); }
+    match /couples/{coupleId}/decisions/{doc}   { allow read, write: if inCouple(coupleId); }
+    match /couples/{coupleId}/progress/{doc}    { allow read, write: if inCouple(coupleId); }
+
+    // الملاحظات الخاصة: لصاحبها فقط، حتى داخل نفس الـ couple.
+    match /couples/{coupleId}/privateNotes/{uid}/{doc} {
+      allow read, write: if signedIn() && uid == request.auth.uid && inCouple(coupleId);
+    }
+
+    // ★ الكشف المزدوج (يُفرض هنا، لا في الواجهة):
+    //   تكتب إجابتك إنت فقط؛ وتقرأ إجابة شريكك فقط لو إجابتك أنت موجودة.
+    match /couples/{coupleId}/answers/{questionId}/responses/{uid} {
+      allow create, update: if signedIn() && uid == request.auth.uid && inCouple(coupleId);
+      allow read: if inCouple(coupleId) && (
+        uid == request.auth.uid ||
+        exists(/databases/$(db)/documents/couples/$(coupleId)/answers/$(questionId)/responses/$(request.auth.uid))
+      );
+    }
+  }
+}
+
+// ملاحظة: الباك-إند (firebase-admin) يتجاوز هذه القواعد، لكنها مرجع للنطاق:
+// مجموعات فيز 2 (tasks/budget/shopping) كلها تحمل pairId وتُقرأ/تُكتب عبر الـ API فقط،
+// وكذلك مجموعات التواصل (wishes/gratitude/capsules/mood/safespace) والمميزات الخاصة
+// (charter/keys/focus/progress) — كلها pairId-scoped وعبر الـ API فقط (session token → pairId).
+// لا وصول مباشر من العميل.

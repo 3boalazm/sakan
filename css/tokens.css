@@ -1,0 +1,41 @@
+/* tokens.css — هوية سكن: متغيّرات + خطوط + 3 ثيمات (فاتح/داكن/OLED) */
+:root{ --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px); --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px); }
+body{ padding-bottom:var(--sab); }
+  @font-face{font-family:'ThmanyahSans';src:url('/fonts/thmanyahsans-Regular.otf') format('opentype');font-weight:400;font-display:swap}
+  @font-face{font-family:'ThmanyahSans';src:url('/fonts/thmanyahsans-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+  @font-face{font-family:'ThmanyahSans';src:url('/fonts/thmanyahsans-Black.otf') format('opentype');font-weight:900;font-display:swap}
+  @font-face{font-family:'ThmanyahSerifDisplay';src:url('/fonts/thmanyahserifdisplay-Bold.otf') format('opentype');font-weight:700;font-display:swap}
+
+  :root{
+    --brand-deep:#0e3b2e; --brand-mid:#1a5d47; --brand-soft:#2a7a5f; --brand-gold:#c9a14a; --brand-gold-lt:#e6c97a;
+    --bg:#faf6ec; --surface:#ffffff; --card-2:#f7f3ea; --sand:#f5ecd9; --sand-2:#ebdfc4;
+    --green-pale:#e8f4ef; --gold-pale:#fdf5e0;
+    --ink:#10241d; --muted:#56635c; --muted-2:#7c8c7e;
+    --primary:#1a5d47; --primary-ink:#0e3b2e; --primary-soft:#e8f4ef;
+    --accent:#c9a14a; --accent-soft:#fdf5e0; --accent-ink:#8a6822;
+    --field-bg:#fcfbf9; --line:rgba(14,59,46,.10);
+    --radius:18px; --radius-sm:12px;
+    --shadow:0 10px 30px -12px rgba(14,59,46,.18); --shadow-sm:0 4px 14px -6px rgba(14,59,46,.12); --shadow-gold:0 8px 24px -8px rgba(201,161,74,.35);
+    --t:.25s; --ease:cubic-bezier(.4,0,.2,1); --header-bg:rgba(250,246,236,.82);
+  }
+  html[data-theme="dark"]{
+    --bg:#0a0f0c; --surface:#111a14; --card-2:#162019; --sand:#1c2a1e; --sand-2:#1a2618;
+    --green-pale:#0d1f12; --gold-pale:#1a1608;
+    --ink:#d8ead8; --muted:#7a9a7a; --muted-2:#4a6a4a;
+    --primary:#3dcc5e; --primary-ink:#4dd866; --primary-soft:rgba(77,216,102,.12);
+    --accent:#e6c97a; --accent-soft:rgba(230,201,122,.12); --accent-ink:#e6c97a;
+    --field-bg:#162019; --line:rgba(255,255,255,.08);
+    --shadow:0 10px 30px -12px rgba(0,0,0,.6); --shadow-sm:0 4px 14px -6px rgba(0,0,0,.4); --shadow-gold:0 8px 24px -8px rgba(0,0,0,.5);
+    --header-bg:rgba(10,15,12,.82);
+  }
+  html[data-theme="oled"]{
+    --bg:#000000; --surface:#0a0a0a; --card-2:#101010; --sand:#080808; --sand-2:#0d0d0d;
+    --green-pale:#040a05; --gold-pale:#0a0800;
+    --ink:#f5fef6; --muted:#b8cfba; --muted-2:#7a9a7c;
+    --primary:#3dcc5e; --primary-ink:#4dd866; --primary-soft:rgba(77,216,102,.12);
+    --accent:#f0d080; --accent-soft:rgba(240,208,128,.12); --accent-ink:#f0d080;
+    --field-bg:#101010; --line:rgba(255,255,255,.10);
+    --shadow:0 10px 30px -12px rgba(0,0,0,.85); --shadow-sm:0 4px 14px -6px rgba(0,0,0,.7); --shadow-gold:0 8px 24px -8px rgba(0,0,0,.7);
+    --header-bg:rgba(0,0,0,.82);
+  }
+
