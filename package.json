@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Sakan — J1 backend, one codebase for Vercel + Railway, Firebase (Firestore) store",
   "engines": { "node": ">=18" },
   "scripts": { "start": "node server.js" },
   "dependencies": { "firebase-admin": "^13.0.2" }
