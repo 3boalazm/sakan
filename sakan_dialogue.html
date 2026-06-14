@@ -1,0 +1,356 @@
+<!--
+  سكن — مركز الحوار (Dialogue Center) | موديول مستقل
+  ------------------------------------------------------------------
+  الفكرة (متوافقة مع الرؤية):
+    • كل سؤال يُجاب عليه بشكل خاص من كل طرف (الكشف المزدوج / dual reveal).
+    • الإجابتان لا تظهران إلا بعد أن يجيب الطرفان — لمنع التأثير المسبق.
+    • بعد الكشف، يتحوّل الحوار إلى "قرار" في سجل القرارات (القرار > الملاحظة).
+    • لا نقاط، لا streaks، لا إشعارات، لا شات — التزامًا بقواعد سكن.
+
+  للدمج في النسخة الموحّدة (sakan-unified):
+    • بنك الأسئلة (QUESTIONS)      → جدول questions على الباك-إند.
+    • تخزين الإجابات (state.answers) → Firestore: answers/{questionId}/{userId}.
+    • قاعدة الكشف (canReveal)        → يُفرض على السيرفر، لا على الواجهة فقط.
+    • القرارات (state.decisions)     → collection: decisions (نفس مخطط الباك-إند).
+    • زر "أنا مصطفى / أنا ضحى"        → يُستبدل بالمستخدم المسجّل دخوله (useAuth).
+  متغيّرات الثيم ونظام الألوان مطابقة لهوية "زاد".
+-->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سكن — مركز الحوار</title>
+<script>(function(){try{var t=localStorage.getItem('sakan_theme')||'light';document.documentElement.setAttribute('data-theme',['light','dark','oled'].indexOf(t)>=0?t:'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}})();</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* ============ ثيم زاد ============ */
+  [data-theme="light"]{
+    --bg:#faf6ec; --surface:#ffffff; --surface-2:#f4eede;
+    --primary:#0e3b2e; --primary-2:#1a5d47; --on-primary:#fbf8ef;
+    --accent:#c9a14a; --accent-soft:#e7d3a0;
+    --text:#16261f; --muted:#5d6b63; --line:#e6ddc7;
+    --shadow:0 10px 30px -12px rgba(14,59,46,.28); --shadow-sm:0 4px 14px -8px rgba(14,59,46,.30);
+  }
+  [data-theme="dark"]{
+    --bg:#0c2a21; --surface:#11362a; --surface-2:#0e2f25;
+    --primary:#2e7d63; --primary-2:#3a9a78; --on-primary:#f3fbf7;
+    --accent:#d8b35e; --accent-soft:#4a4226;
+    --text:#e7f3ec; --muted:#9fc0b2; --line:#1d4a3a;
+    --shadow:0 12px 34px -14px rgba(0,0,0,.55); --shadow-sm:0 6px 16px -10px rgba(0,0,0,.5);
+  }
+  [data-theme="oled"]{
+    --bg:#000000; --surface:#0a0a0a; --surface-2:#0f0f0f;
+    --primary:#2e7d63; --primary-2:#3a9a78; --on-primary:#f3fbf7;
+    --accent:#d8b35e; --accent-soft:#2a2413;
+    --text:#eef4f0; --muted:#8aa399; --line:#1a1a1a;
+    --shadow:0 12px 34px -14px rgba(0,0,0,.8); --shadow-sm:0 6px 16px -10px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:"Tajawal",system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.7; -webkit-font-smoothing:antialiased;
+    transition:background .25s,color .25s;
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  .wrap{max-width:760px;margin:0 auto;padding:0 18px 64px}
+
+  /* ============ الهيدر ============ */
+  header.bar{
+    position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  }
+  .bar-in{max-width:760px;margin:0 auto;padding:14px 18px;display:flex;align-items:center;gap:12px}
+  .brand{font-weight:900;font-size:22px;color:var(--primary);letter-spacing:-.5px;margin-inline-end:auto}
+  .brand span{color:var(--accent)}
+  .seg{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:3px}
+  .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;cursor:pointer;
+    padding:6px 10px;border-radius:11px;display:flex;align-items:center;gap:6px}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--primary);box-shadow:var(--shadow-sm);font-weight:700}
+  .theme-sw button{font-size:15px;padding:6px 9px}
+
+  /* ============ التبويبات ============ */
+  nav.tabs{display:flex;gap:8px;margin:22px 0 18px}
+  nav.tabs button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--muted);
+    font:inherit;font-weight:700;font-size:15px;cursor:pointer;padding:12px;border-radius:16px;transition:.2s}
+  nav.tabs button[aria-selected="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+
+  h1.page{font-size:26px;font-weight:900;margin:8px 0 4px;color:var(--primary)}
+  p.lede{color:var(--muted);margin:0 0 22px;font-size:15px}
+
+  /* ============ الحلقات المفتوحة ============ */
+  .loops{background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin-bottom:24px}
+  .loops h2{margin:0 0 4px;font-size:15px;color:var(--accent);font-weight:900;display:flex;align-items:center;gap:8px}
+  .loops p{margin:0;color:var(--muted);font-size:14px}
+
+  /* ============ الفئات والأسئلة ============ */
+  .cat{margin:26px 0 10px;font-size:13px;font-weight:900;color:var(--muted);letter-spacing:.4px;text-transform:none;
+    display:flex;align-items:center;gap:9px}
+  .cat::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:14px;
+    box-shadow:var(--shadow-sm);transition:transform .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+  .q{font-size:17px;font-weight:700;margin:0 0 12px;line-height:1.55}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+  .pill{font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;border:1px solid transparent}
+  .pill.wait{background:var(--surface-2);color:var(--muted);border-color:var(--line)}
+  .pill.mine{background:color-mix(in srgb,var(--accent) 18%,var(--surface));color:var(--primary);border-color:var(--accent-soft)}
+  .pill.ready{background:var(--primary);color:var(--on-primary)}
+  .pill.done{background:color-mix(in srgb,var(--primary-2) 16%,var(--surface));color:var(--primary-2);border-color:var(--primary-2)}
+
+  button.act{border:0;border-radius:13px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;padding:10px 16px;transition:.15s}
+  button.act.primary{background:var(--primary);color:var(--on-primary)}
+  button.act.primary:hover{background:var(--primary-2)}
+  button.act.gold{background:linear-gradient(135deg,var(--accent),#b8902f);color:#1c1405}
+  button.act.gold:hover{filter:brightness(1.05)}
+  button.act.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+  button.act:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+  textarea{width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:14px;
+    font:inherit;font-size:15px;padding:12px 14px;resize:vertical;min-height:96px;margin-top:6px}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .answer-box{margin-top:14px;border-top:1px dashed var(--line);padding-top:14px}
+  .reveal{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  @media(max-width:560px){.reveal{grid-template-columns:1fr}}
+  .ans{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:13px 15px}
+  .ans .who{font-size:13px;font-weight:900;color:var(--accent);margin:0 0 6px}
+  .ans .txt{font-size:14.5px;margin:0;color:var(--text);white-space:pre-wrap}
+
+  /* ============ سجل القرارات ============ */
+  .dec{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px;margin-bottom:13px;box-shadow:var(--shadow-sm)}
+  .dec .dq{font-size:13px;color:var(--muted);margin:0 0 6px}
+  .dec .dt{font-size:16px;font-weight:700;margin:0 0 10px}
+  .dec .meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .chk{appearance:none;width:22px;height:22px;border:2px solid var(--line);border-radius:8px;cursor:pointer;position:relative;flex:0 0 auto}
+  .chk:checked{background:var(--primary-2);border-color:var(--primary-2)}
+  .chk:checked::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;color:var(--on-primary);font-size:13px;font-weight:900}
+
+  .empty{text-align:center;color:var(--muted);padding:48px 20px;border:1px dashed var(--line);border-radius:18px}
+  .empty b{display:block;color:var(--text);font-size:17px;margin-bottom:6px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">سَكَن<span>.</span></div>
+    <div class="seg" id="who" title="من يجيب الآن؟ (في التطبيق الحقيقي يُحدّد تلقائيًا بحسابك)">
+      <button data-user="m" aria-pressed="true">مصطفى</button>
+      <button data-user="d" aria-pressed="false">ضحى</button>
+    </div>
+    <div class="seg theme-sw" id="themesw">
+      <button data-theme="light" title="فاتح">☀️</button>
+      <button data-theme="dark" title="داكن">🌙</button>
+      <button data-theme="oled" title="OLED">⚫</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" id="tabs">
+    <button data-tab="dialogue" aria-selected="true">الحوار</button>
+    <button data-tab="decisions" aria-selected="false">سجل القرارات</button>
+  </nav>
+
+  <!-- ============ تبويب الحوار ============ -->
+  <section id="tab-dialogue">
+    <h1 class="page">مركز الحوار</h1>
+    <p class="lede">كل واحد فيكوا يجاوب لوحده. الإجابتين تظهروا سوا بس لما تكونوا جاوبتوا الاتنين — وبعدها تحوّلوا اللي اتفقتوا عليه لقرار.</p>
+
+    <div class="loops">
+      <h2>◷ الحلقات المفتوحة</h2>
+      <p id="loops-text"></p>
+    </div>
+
+    <div id="questions"></div>
+  </section>
+
+  <!-- ============ تبويب القرارات ============ -->
+  <section id="tab-decisions" class="hidden">
+    <h1 class="page">سجل القرارات</h1>
+    <p class="lede">القرار أهم من الملاحظة. ده اللي اتفقتوا عليه فعلاً، ومين مسؤول عنه.</p>
+    <div id="decisions"></div>
+  </section>
+</div>
+
+<script>
+// ====================== الحالة (in-memory للعرض) ======================
+const USERS = { m:"مصطفى", d:"ضحى" };
+let me = "m";
+
+// بنك الأسئلة المصنّف — عيّنة بداية (البنك الحقيقي أكبر، يُحمّل من الباك-إند)
+const QUESTIONS = [
+  { id:"v1", cat:"القيم والدين", q:"إيه الطقوس الدينية اللي نفسك تكون ثابتة في بيتنا (صلاة، قرآن، أذكار)؟" },
+  { id:"v2", cat:"القيم والدين", q:"لو اختلفنا في فهم مسألة شرعية، نرجع لمين أو لإيه؟" },
+  { id:"m1", cat:"المال", q:"حساب مشترك ولا منفصل ولا مزيج؟ وإزاي نقسّم المصاريف؟" },
+  { id:"m2", cat:"المال", q:"كل واحد فينا بيعرّف 'الادخار الكافي' إزاي؟ وهدفنا المالي لأول سنتين إيه؟" },
+  { id:"c1", cat:"الأبناء والتربية", q:"امتى نبدأ نفكّر في أطفال؟ وإيه أكتر حاجة تهمّك في تربيتهم؟" },
+  { id:"f1", cat:"الأهل والحدود", q:"إيه الحدود الصحية في علاقتنا بأهلنا؟ وامتى الزيارة تبقى كتير؟" },
+  { id:"r1", cat:"الأدوار اليومية", q:"مسؤوليات البيت تتقسّم إزاي بشكل عادل بالنسبالنا الاتنين؟" },
+  { id:"a1", cat:"الطموح والمستقبل", q:"لو جالي عرض شغل في مدينة تانية، نتعامل مع القرار ده إزاي؟" },
+  { id:"x1", cat:"حل الخلافات", q:"لما نتخانق، إيه الحاجة اللي محتاج كل واحد فينا يسمعها عشان يهدا؟" },
+];
+
+const state = {
+  answers: {},     // { questionId: { m:"...", d:"..." } }
+  decisions: [],   // { id, qId, qText, text, owner, done }
+};
+
+// ====================== أدوات ======================
+const $ = s => document.querySelector(s);
+const esc = s => (s||"").replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const partner = () => me === "m" ? "d" : "m";
+const myAns = q => (state.answers[q]||{})[me];
+const partnerAns = q => (state.answers[q]||{})[partner()];
+const canReveal = q => !!myAns(q) && !!partnerAns(q);
+
+// ====================== الثيم ======================
+$("#themesw").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  const t = b.dataset.theme;
+  document.documentElement.setAttribute("data-theme", t);
+  try{ localStorage.setItem("sakan_theme", t); }catch(e){}
+});
+
+// ====================== مبدّل المستخدم (للعرض فقط) ======================
+$("#who").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  me = b.dataset.user;
+  [...$("#who").children].forEach(x => x.setAttribute("aria-pressed", x.dataset.user===me));
+  render();
+});
+
+// ====================== التبويبات ======================
+$("#tabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  const t = b.dataset.tab;
+  [...$("#tabs").children].forEach(x => x.setAttribute("aria-selected", x.dataset.tab===t));
+  $("#tab-dialogue").classList.toggle("hidden", t!=="dialogue");
+  $("#tab-decisions").classList.toggle("hidden", t!=="decisions");
+});
+
+// ====================== العرض ======================
+function statusPill(q){
+  if(canReveal(q)) return `<span class="pill done">✓ اتكشفت</span>`;
+  if(myAns(q))     return `<span class="pill wait">مستني ${USERS[partner()]}</span>`;
+  if(partnerAns(q))return `<span class="pill ready">دورك تجاوب</span>`;
+  return `<span class="pill wait">مستني الاتنين</span>`;
+}
+
+function render(){
+  // الحلقات المفتوحة = أسئلة مستنية دورك إنت
+  const myTurn = QUESTIONS.filter(x => !myAns(x.id));
+  $("#loops-text").textContent = myTurn.length
+    ? `في ${myTurn.length} ${myTurn.length===1?"سؤال مستني":"أسئلة مستنية"} إجابتك يا ${USERS[me]}.`
+    : `جاوبت على كل الأسئلة المتاحة. مفيش حلقات مفتوحة من ناحيتك 🌿`;
+
+  // أسئلة مجمّعة بالفئة
+  const byCat = {};
+  QUESTIONS.forEach(x => (byCat[x.cat] = byCat[x.cat]||[]).push(x));
+  let html = "";
+  for(const cat in byCat){
+    html += `<div class="cat">${esc(cat)}</div>`;
+    byCat[cat].forEach(x => html += questionCard(x));
+  }
+  $("#questions").innerHTML = html;
+
+  renderDecisions();
+}
+
+function questionCard(x){
+  const revealed = canReveal(x.id);
+  const open = activeQ === x.id;
+  let body = "";
+
+  if(revealed){
+    body = `
+      <div class="reveal">
+        <div class="ans"><p class="who">${USERS.m}</p><p class="txt">${esc(state.answers[x.id].m)}</p></div>
+        <div class="ans"><p class="who">${USERS.d}</p><p class="txt">${esc(state.answers[x.id].d)}</p></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <span class="pill done">حوار مكتمل</span>
+        <button class="act gold" data-decide="${x.id}">حوّلوا اللي اتفقتوا عليه لقرار</button>
+      </div>`;
+  } else if(open){
+    body = `
+      <div class="answer-box">
+        <textarea id="ta-${x.id}" placeholder="إجابتك تتحفظ بشكل خاص، ومش هتظهر لـ${USERS[partner()]} غير لما يجاوب هو كمان."></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="act ghost" data-cancel="1">إلغاء</button>
+          <button class="act primary" data-save="${x.id}">احفظ إجابتي</button>
+        </div>
+      </div>`;
+  } else {
+    const label = myAns(x.id) ? "عدّل إجابتك" : "جاوب";
+    body = `<div class="row"><span></span><button class="act primary" data-answer="${x.id}">${label}</button></div>`;
+  }
+
+  return `<div class="card">
+    <p class="q">${esc(x.q)}</p>
+    <div class="row" style="margin-bottom:${open||revealed?'4px':'0'}">${statusPill(x.id)}<span></span></div>
+    ${body}
+  </div>`;
+}
+
+let activeQ = null;
+
+// نقرات تبويب الحوار
+$("#questions").addEventListener("click", e => {
+  const t = e.target.closest("button"); if(!t) return;
+  if(t.dataset.answer){ activeQ = t.dataset.answer; render(); setTimeout(()=>$("#ta-"+activeQ)?.focus(),0); }
+  if(t.dataset.cancel){ activeQ = null; render(); }
+  if(t.dataset.save){
+    const id = t.dataset.save, val = $("#ta-"+id).value.trim();
+    if(!val){ $("#ta-"+id).focus(); return; }
+    (state.answers[id] = state.answers[id]||{})[me] = val;   // ← Firestore في التطبيق الحقيقي
+    activeQ = null; render();
+  }
+  if(t.dataset.decide){ openDecision(t.dataset.decide); }
+});
+
+// ====================== القرارات ======================
+function openDecision(qId){
+  const q = QUESTIONS.find(x=>x.id===qId);
+  const text = prompt(`القرار اللي اتفقتوا عليه بخصوص:\n«${q.q}»`, "");
+  if(text===null || !text.trim()) return;
+  const owner = prompt("مين المسؤول عن تنفيذه؟ (مصطفى / ضحى / الاتنين)", "الاتنين") || "الاتنين";
+  state.decisions.unshift({ id:"d"+Date.now(), qId, qText:q.q, text:text.trim(), owner:owner.trim(), done:false });
+  // الانتقال لتبويب القرارات
+  $('#tabs button[data-tab="decisions"]').click();
+}
+
+function renderDecisions(){
+  const box = $("#decisions");
+  if(!state.decisions.length){
+    box.innerHTML = `<div class="empty"><b>لسه مفيش قرارات</b>كل حوار بتكمّلوه وتتفقوا فيه، حوّلوه لقرار من زر «حوّل لقرار» — وهيظهر هنا.</div>`;
+    return;
+  }
+  box.innerHTML = state.decisions.map(d => `
+    <div class="dec">
+      <p class="dq">من حوار: ${esc(d.qText)}</p>
+      <p class="dt">${esc(d.text)}</p>
+      <div class="meta">
+        <input type="checkbox" class="chk" data-done="${d.id}" ${d.done?"checked":""}>
+        <span class="pill ${d.done?'done':'mine'}">${d.done?'تم':'قيد التنفيذ'}</span>
+        <span class="pill wait">المسؤول: ${esc(d.owner)}</span>
+      </div>
+    </div>`).join("");
+}
+
+$("#decisions").addEventListener("change", e => {
+  const c = e.target.closest("input[data-done]"); if(!c) return;
+  const d = state.decisions.find(x=>x.id===c.dataset.done);
+  if(d){ d.done = c.checked; renderDecisions(); }
+});
+
+// ====================== بدء ======================
+render();
+</script>
+</body>
+</html>
