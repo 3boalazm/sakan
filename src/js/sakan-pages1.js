@@ -712,7 +712,7 @@
   // ========== رحلتي ==========
   async function renderMyJourney(){
     S.view="myjourney"; S.resourceId=null;
-    el.innerHTML = pageTitle("رحلتي 🌿","كل خطوة خطوتيها في سكن — موثّقة هنا.")
+    el.innerHTML = pageTitle("رحلتي 🌿","خطواتك إنت بس — مش بيشوفها حد غيرك.")
       + `<div id="jrnBody"><div class="empty">…تحميل</div></div>`;
 
     let data;
@@ -728,23 +728,23 @@
     // ── Icon & label per event type ──
     function evIcon(e){
       if(e.entity==="resource"){
-        if(e.type==="created")          return {ico:"📚",txt:`أضاف${e.isMine?'':'ت'} موردًا جديدًا`+(e.title?` · ${e.title}`:"")};
+        if(e.type==="created")          return {ico:"📚",txt:"أضفت موردًا جديدًا"+(e.title?` · ${e.title}`:"")};
         if(e.type==="progress"||e.type==="transition"){
-          if(e.to==="completed")        return {ico:"✅",txt:`أنهى${e.isMine?'':'ت'} مادة`+(e.title?` · ${e.title}`:"")};
-          if(e.to==="in_progress")      return {ico:"▶️",txt:`بدأ${e.isMine?'':'ت'} مادة`+(e.title?` · ${e.title}`:"")};
+          if(e.to==="completed")        return {ico:"✅",txt:"أنهيت مادة"+(e.title?` · ${e.title}`:"")};
+          if(e.to==="in_progress")      return {ico:"▶️",txt:"بدأت مادة"+(e.title?` · ${e.title}`:"")};
         }
-        if(e.type==="summary_generated") return {ico:"🤖",txt:`ولّد${e.isMine?'':'ت'} ملخصًا`+(e.title?` · ${e.title}`:"")};
+        if(e.type==="summary_generated") return {ico:"🤖",txt:"ولّدت ملخصًا"+(e.title?` · ${e.title}`:"")};
       }
       if(e.entity==="question"){
-        if(e.type==="created")          return {ico:"💬",txt:`أضاف${e.isMine?'':'ت'} سؤالًا للنقاش`+(e.title?` من · ${e.title}`:"")};
-        if(e.type==="response_submitted") return {ico:"✍️",txt:`أجاب${e.isMine?'':'ت'} على سؤال`+(e.title?` في · ${e.title}`:"")};
-        if(e.type==="transition" && e.to==="revealed") return {ico:"👀",txt:`كشف${e.isMine?'':'ت'} الإجابات`+(e.title?` · ${e.title}`:"")};
+        if(e.type==="created")          return {ico:"💬",txt:"أضفت سؤالًا للنقاش"+(e.title?` من · ${e.title}`:"")};
+        if(e.type==="response_submitted") return {ico:"✍️",txt:"أجبت على سؤال"+(e.title?` في · ${e.title}`:"")};
+        if(e.type==="transition" && e.to==="revealed") return {ico:"👀",txt:"كشفت الإجابات"+(e.title?` · ${e.title}`:"")};
       }
       if(e.entity==="decision"){
-        if(e.type==="created")          return {ico:"⚡",txt:`سجّل${e.isMine?'':'ت'} قرارًا`+(e.title?` من · ${e.title}`:"")};
-        if(e.type==="confirmation")     return {ico:"🤝",txt:`أكّد${e.isMine?'':'ت'} قرارًا`};
+        if(e.type==="created")          return {ico:"⚡",txt:"سجّلت قرارًا"+(e.title?` من · ${e.title}`:"")};
+        if(e.type==="confirmation")     return {ico:"🤝",txt:"أكّدت قرارًا"};
       }
-      if(e.entity==="task" && e.type==="created") return {ico:"🗒️",txt:`أضاف${e.isMine?'':'ت'} مهمة`};
+      if(e.entity==="task" && e.type==="created") return {ico:"🗒️",txt:"أضفت مهمة"};
       return {ico:"🔔",txt:`نشاط`};
     }
 
@@ -770,8 +770,9 @@
         lastDay = day;
       }
       const {ico,txt} = evIcon(e);
-      const who    = e.isMine ? "أنا" : "ضحى";
-      const whoClr = e.isMine ? "var(--primary)" : "var(--accent)";
+      // رحلتي = أنا بس — مفيش حاجة من الطرف الآخر هنا
+      const who    = "أنا";
+      const whoClr = "var(--primary)";
       const time   = new Date(e.createdAt).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"});
       html += `
         <div class="jrn-item ${e.isMine?'mine':'partner'}">
