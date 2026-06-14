@@ -21,10 +21,11 @@ const DEFAULT_STATE={
     {id:"r2",icon:"📖",title:"كتاب: فقه الأسرة المسلمة (مقتطف)",url:"https://example.com/book1",desc:"فصل في الحقوق والواجبات المتبادلة.",sharedNote:""},
   ],
   progress:{}, privateNotes:{}, summaries:{}, answers:{}, discussed:{}, decisions:[],
+  tasks:[], budget:[], shopping:[],
 };
 // ----- التخزين -----
 let state, me;
-function load(){try{state=JSON.parse(localStorage.getItem("sakan_state"))||structuredClone(DEFAULT_STATE)}catch(e){state=structuredClone(DEFAULT_STATE)}me=localStorage.getItem("sakan_me")||"m"}
+function load(){try{state=JSON.parse(localStorage.getItem("sakan_state"))||structuredClone(DEFAULT_STATE)}catch(e){state=structuredClone(DEFAULT_STATE)}for(const k in DEFAULT_STATE){if(!(k in state))state[k]=structuredClone(DEFAULT_STATE[k])}me=localStorage.getItem("sakan_me")||"m"}
 function save(){try{localStorage.setItem("sakan_state",JSON.stringify(state))}catch(e){}}
 function setMe(u){me=u;try{localStorage.setItem("sakan_me",u)}catch(e){}}
 // ----- أدوات -----
@@ -38,7 +39,7 @@ const canReveal=q=>!!myAns(q)&&!!aAns(q);
 const greet=()=>{const h=new Date().getHours();return h<5?"ليلة هادئة":h<12?"صباح الخير":h<17?"أهلًا":h<22?"مساء الخير":"ليلة هادئة"};
 const qp=k=>new URLSearchParams(location.search).get(k);
 // ----- الهيدر والتنقّل (روابط صفحات حقيقية) -----
-const NAV=[["home.html","الرئيسية"],["library.html","المكتبة"],["dialogue.html","الحوار"],["decisions.html","القرارات"],["settings.html","الإعدادات"]];
+const NAV=[["home.html","الرئيسية"],["library.html","المكتبة"],["tasks.html","المهام"],["budget.html","الميزانية"],["shopping.html","المشتريات"],["dialogue.html","الحوار"],["decisions.html","القرارات"],["settings.html","الإعدادات"]];
 function chrome(active){
   const links=NAV.map(([h,l])=>`<a href="${h}" ${location.pathname.endsWith(h)?'aria-current="page"':''}>${l}</a>`).join("");
   return `<header class="bar"><div class="bar-in">
@@ -145,4 +146,55 @@ function renderSettings(){
     <div class="cat">تجريبي</div><div class="card"><button class="act ghost sm" id="reset">تصفير بيانات العرض</button></div>`;
   document.getElementById("export").addEventListener("click",()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="sakan-export.json";a.click();URL.revokeObjectURL(a.href)});
   document.getElementById("reset").addEventListener("click",()=>{if(confirm("تصفير بيانات العرض؟")){state=structuredClone(DEFAULT_STATE);save();renderSettings()}});
+}
+
+// ========================= فيز 2: التنظيم العملي =========================
+const OWNERS={m:"مصطفى",d:"ضحى",both:"الاتنين"};
+const money=n=>(Number(n)||0).toLocaleString("ar-EG");
+
+// ----- المهام / مخطّط الزفاف (مسؤول + تاريخ) -----
+function renderTasks(){
+  const items=state.tasks.length?state.tasks.map(t=>`<div class="card"><div class="row"><label class="row" style="gap:9px;cursor:pointer">
+    <input type="checkbox" class="chk" data-tdone="${t.id}" ${t.done?"checked":""}>
+    <span class="q" style="margin:0;${t.done?'text-decoration:line-through;opacity:.6':''}">${esc(t.title)}</span></label>
+    <button class="act ghost sm" data-tdel="${t.id}">حذف</button></div>
+    <div class="row" style="margin-top:8px"><span class="pill mine">المسؤول: ${esc(OWNERS[t.owner]||t.owner)}</span>${t.due?`<span class="pill wait">📅 ${esc(t.due)}</span>`:""}</div></div>`).join("")
+    :`<div class="empty"><b>مفيش مهام</b>أضيفوا أول مهمة (حجز قاعة، فستان، دعوات…) بمسؤول وتاريخ.</div>`;
+  V().innerHTML=`<h1 class="page">المهام ومخطّط الفرح</h1><p class="lede">مهام تتقسّم بينكوا بمسؤول وتاريخ — فريق واحد.</p>
+    <div class="row" style="margin-bottom:14px"><span></span><button class="act gold sm" id="add-task">+ مهمة</button></div>${items}`;
+  document.getElementById("add-task").addEventListener("click",()=>{const title=prompt("المهمة:");if(!title||!title.trim())return;const o=(prompt("المسؤول: مصطفى / ضحى / الاتنين","الاتنين")||"").trim();const owner={"مصطفى":"m","ضحى":"d","الاتنين":"both"}[o]||"both";const due=(prompt("تاريخ الاستحقاق (اختياري) مثل 2026-08-01:","")||"").trim();state.tasks.push({id:"t"+Date.now(),title:title.trim(),owner,due,done:false});save();renderTasks()});
+  V().querySelectorAll("input[data-tdone]").forEach(c=>c.addEventListener("change",()=>{const t=state.tasks.find(x=>x.id===c.dataset.tdone);if(t)t.done=c.checked;save();renderTasks()}));
+  V().querySelectorAll("[data-tdel]").forEach(b=>b.addEventListener("click",()=>{state.tasks=state.tasks.filter(x=>x.id!==b.dataset.tdel);save();renderTasks()}));
+}
+
+// ----- الميزانية (مخطط/مدفوع/متبقّي) -----
+function renderBudget(){
+  const planned=state.budget.reduce((s,b)=>s+(+b.planned||0),0);
+  const paid=state.budget.reduce((s,b)=>s+(+b.paid||0),0);
+  const summary=`<div class="card"><div class="row"><span class="pill wait">المخطّط: ${money(planned)}</span><span class="pill mine">المدفوع: ${money(paid)}</span><span class="pill ${planned-paid<=0?'done':'ready'}">المتبقّي: ${money(planned-paid)}</span></div></div>`;
+  const items=state.budget.length?state.budget.map(b=>{const rem=(+b.planned||0)-(+b.paid||0);return `<div class="card"><div class="row"><p class="q" style="margin:0">${esc(b.label)}</p><button class="act ghost sm" data-bdel="${b.id}">حذف</button></div>
+    <div class="row" style="margin-top:8px">${b.cat?`<span class="pill wait">${esc(b.cat)}</span>`:""}<span class="pill mine">مدفوع ${money(b.paid)} / ${money(b.planned)}</span><span class="pill ${rem<=0?'done':'wait'}">${rem<=0?'مكتمل':'باقي '+money(rem)}</span></div>
+    <div class="row" style="margin-top:8px"><span></span><button class="act primary sm" data-bpay="${b.id}">سجّل دفعة</button></div></div>`}).join("")
+    :`<div class="empty"><b>مفيش بنود</b>أضيفوا بنود الميزانية (قاعة، جهاز، إيجار…) بمبلغ مخطّط.</div>`;
+  V().innerHTML=`<h1 class="page">الميزانية المشتركة</h1><p class="lede">تتبّعوا فين رايحة الفلوس: مخطّط، مدفوع، ومتبقّي لكل بند.</p>
+    <div class="row" style="margin-bottom:14px"><span></span><button class="act gold sm" id="add-budget">+ بند</button></div>${summary}<div class="cat">البنود</div>${items}`;
+  document.getElementById("add-budget").addEventListener("click",()=>{const label=prompt("اسم البند:");if(!label||!label.trim())return;const cat=(prompt("الفئة (اختياري): فرح / جهاز / بيت / فواتير","")||"").trim();const planned=+prompt("المبلغ المخطّط:","0")||0;const paid=+prompt("المدفوع حتى الآن:","0")||0;state.budget.push({id:"b"+Date.now(),label:label.trim(),cat,planned,paid});save();renderBudget()});
+  V().querySelectorAll("[data-bpay]").forEach(b=>b.addEventListener("click",()=>{const it=state.budget.find(x=>x.id===b.dataset.bpay);const add=+prompt(`دفعة جديدة لـ«${it.label}»:`,"0")||0;it.paid=(+it.paid||0)+add;save();renderBudget()}));
+  V().querySelectorAll("[data-bdel]").forEach(b=>b.addEventListener("click",()=>{state.budget=state.budget.filter(x=>x.id!==b.dataset.bdel);save();renderBudget()}));
+}
+
+// ----- المشتريات (قائمة حيّة) -----
+function renderShopping(){
+  const items=state.shopping.length?state.shopping.map(s=>`<div class="card" style="padding:12px 16px"><div class="row"><label class="row" style="gap:9px;cursor:pointer">
+    <input type="checkbox" class="chk" data-sdone="${s.id}" ${s.done?"checked":""}>
+    <span style="${s.done?'text-decoration:line-through;opacity:.6':''}">${esc(s.text)}</span></label>
+    <button class="act ghost sm" data-sdel="${s.id}">حذف</button></div></div>`).join("")
+    :`<div class="empty"><b>القائمة فاضية</b>أضيفوا اللي البيت محتاجه — وأول ما حد يشطب حاجة تظهر للطرف التاني.</div>`;
+  const doneCount=state.shopping.filter(s=>s.done).length;
+  V().innerHTML=`<h1 class="page">قائمة المشتريات</h1><p class="lede">قائمة حيّة للبيت. الشطب بيظهر للطرفين فورًا (في الإنتاج عبر Realtime).</p>
+    <div class="row" style="margin-bottom:14px"><span></span><div class="row" style="gap:8px"><button class="act gold sm" id="add-shop">+ صنف</button>${doneCount?`<button class="act ghost sm" id="clear-shop">امسح المشطوب (${doneCount})</button>`:""}</div></div>${items}`;
+  document.getElementById("add-shop").addEventListener("click",()=>{const text=prompt("الصنف (حليب، بيض، إصلاح سباكة…):");if(!text||!text.trim())return;state.shopping.push({id:"s"+Date.now(),text:text.trim(),done:false});save();renderShopping()});
+  const cs=document.getElementById("clear-shop");cs&&cs.addEventListener("click",()=>{state.shopping=state.shopping.filter(s=>!s.done);save();renderShopping()});
+  V().querySelectorAll("input[data-sdone]").forEach(c=>c.addEventListener("change",()=>{const s=state.shopping.find(x=>x.id===c.dataset.sdone);if(s)s.done=c.checked;save();renderShopping()}));
+  V().querySelectorAll("[data-sdel]").forEach(b=>b.addEventListener("click",()=>{state.shopping=state.shopping.filter(x=>x.id!==b.dataset.sdel);save();renderShopping()}));
 }
