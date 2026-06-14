@@ -35,16 +35,30 @@ const server = http.createServer(async (req, res) => {
       } catch {}
       res.writeHead(404, CORS); return res.end();
     }
-    if (url.pathname.startsWith('/media/')) {
+    if (url.pathname.startsWith('/media/') || url.pathname.startsWith('/js/')
+        || url.pathname.startsWith('/icons/') || url.pathname === '/sw.js'
+        || url.pathname === '/manifest.json') {
       try {
         const rel = decodeURIComponent(url.pathname).replace(/\.\.+/g, '');
         const fs = await import('node:fs/promises');
         const pathMod = await import('node:path');
-        const file = pathMod.join(process.cwd(), rel);
+        // files live under src/ in the repo
+        const file = pathMod.join(process.cwd(), 'src', rel);
         const data = await fs.readFile(file);
-        const ct = file.toLowerCase().endsWith('.svg') ? 'image/svg+xml'
-          : file.toLowerCase().endsWith('.png') ? 'image/png' : 'application/octet-stream';
-        res.writeHead(200, { 'content-type': ct, 'cache-control': 'public, max-age=86400', ...CORS });
+        const ext = file.split('.').pop().toLowerCase();
+        const ctMap = {
+          js: 'application/javascript; charset=utf-8',
+          json: 'application/json; charset=utf-8',
+          svg: 'image/svg+xml',
+          png: 'image/png',
+          jpg: 'image/jpeg', jpeg: 'image/jpeg',
+          otf: 'font/otf', ttf: 'font/ttf',
+        };
+        const ct = ctMap[ext] || 'application/octet-stream';
+        const cc = (ext === 'js' || ext === 'css') ? 'public, max-age=3600'
+                 : (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'otf') ? 'public, max-age=86400'
+                 : 'no-cache';
+        res.writeHead(200, { 'content-type': ct, 'cache-control': cc, ...CORS });
         return res.end(data);
       } catch { res.writeHead(404, CORS); return res.end(); }
     }
