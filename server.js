@@ -42,9 +42,19 @@ const server = http.createServer(async (req, res) => {
         const rel = decodeURIComponent(url.pathname).replace(/\.\.+/g, '');
         const fs = await import('node:fs/promises');
         const pathMod = await import('node:path');
-        // files live under src/ in the repo
-        const file = pathMod.join(process.cwd(), 'src', rel);
-        const data = await fs.readFile(file);
+        // media/ lives at repo root; js/, icons/, sw.js, manifest.json live under src/
+        const isMedia = url.pathname.startsWith('/media/');
+        const rootFile = pathMod.join(process.cwd(), rel);
+        const srcFile  = pathMod.join(process.cwd(), 'src', rel);
+        let file, data;
+        if (isMedia) {
+          // try repo root first, then src/media/
+          try { data = await fs.readFile(rootFile); file = rootFile; }
+          catch { data = await fs.readFile(srcFile); file = srcFile; }
+        } else {
+          file = srcFile;
+          data = await fs.readFile(file);
+        }
         const ext = file.split('.').pop().toLowerCase();
         const ctMap = {
           js: 'application/javascript; charset=utf-8',
