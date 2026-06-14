@@ -49,7 +49,8 @@
   }
 
   *{box-sizing:border-box}
-  html,body{margin:0}
+  html,body{margin:0; overflow-x:hidden}
+  img{max-width:100%; height:auto}
   body{
     background:var(--bg); color:var(--ink);
     font-family:'ThmanyahSans','Tajawal','Segoe UI',system-ui,sans-serif; font-weight:400; line-height:1.75;
@@ -59,13 +60,15 @@
   .wrap{max-width:720px; margin:0 auto; padding:0 20px 90px}
   a{color:var(--primary); text-decoration:none}
 
-  header{position:sticky; top:0; z-index:10; background:var(--header-bg); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
-  .bar{max-width:720px; margin:0 auto; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px}
-  .mark{font-family:'ThmanyahSerifDisplay','ThmanyahSans',serif; font-weight:700; font-size:27px; color:var(--primary-ink); letter-spacing:.5px}
-  .mark small{font-family:'ThmanyahSans','Tajawal',sans-serif; font-weight:300; font-size:12px; color:var(--muted); display:block; margin-top:-2px; letter-spacing:0}
-  .bar-actions{display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); flex-wrap:wrap; justify-content:flex-end}
-  .chip{background:var(--green-pale); color:var(--primary-ink); border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:500; border:1px solid var(--line)}
-  .linkbtn{background:none; border:none; color:var(--muted); cursor:pointer; font:inherit; font-size:13px}
+  header{position:sticky; top:0; z-index:20; background:transparent; border:none; padding:10px 12px 6px}
+  .bar{max-width:760px; margin:0 auto; padding:8px 14px; display:flex; align-items:center; gap:10px; background:var(--header-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border:1px solid var(--line); border-radius:999px; box-shadow:var(--shadow-sm)}
+  .mark{flex:none; white-space:nowrap; font-family:'ThmanyahSerifDisplay','ThmanyahSans',serif; font-weight:700; font-size:23px; color:var(--primary-ink); letter-spacing:.5px}
+  .mark small{font-family:'ThmanyahSans','Tajawal',sans-serif; font-weight:300; font-size:11px; color:var(--muted); display:block; margin-top:-3px; letter-spacing:0; white-space:nowrap}
+  .bar-actions{flex:1; min-width:0; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); flex-wrap:nowrap; justify-content:flex-end; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch}
+  .bar-actions::-webkit-scrollbar{display:none}
+  .bar-actions>*{flex:none}
+  .chip{background:var(--green-pale); color:var(--primary-ink); border-radius:999px; padding:5px 12px; font-size:12.5px; font-weight:500; border:1px solid var(--line); white-space:nowrap}
+  .linkbtn{background:none; border:none; color:var(--muted); cursor:pointer; font:inherit; font-size:13px; white-space:nowrap}
   .linkbtn:hover{color:var(--ink)}
   .themesw{display:inline-flex; gap:2px; background:var(--card-2); border:1px solid var(--line); border-radius:999px; padding:3px}
   .themesw button{font:inherit; font-size:13px; line-height:1; border:none; background:none; cursor:pointer; width:30px; height:26px; border-radius:999px; color:var(--muted); display:grid; place-items:center; transition:background .15s}
@@ -118,7 +121,7 @@
   .q{border:1px solid var(--line); border-radius:var(--radius); padding:18px; margin-bottom:14px; background:var(--surface); box-shadow:var(--shadow-sm)}
   .q .qtext{font-family:'ThmanyahSerifDisplay','ThmanyahSans',serif; font-size:18px; font-weight:700; margin:0 0 14px; line-height:1.55}
   .answers{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
-  @media(max-width:560px){ .answers{grid-template-columns:1fr} .bar{padding:12px 16px} h1{font-size:26px} }
+  @media(max-width:560px){ .answers{grid-template-columns:1fr} header{padding:8px 8px 4px} .bar{padding:7px 12px; gap:8px} .mark{font-size:20px} .mark small{display:none} h1{font-size:26px} }
   .ans{border:1px solid var(--line); border-radius:var(--radius-sm); padding:13px 14px; background:var(--field-bg)}
   .ans .who{font-size:12px; color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:6px}
   .ans .body{white-space:pre-wrap; word-break:break-word}
