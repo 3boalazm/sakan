@@ -156,7 +156,7 @@
 <body>
 <header>
   <div class="bar">
-    <div class="mark">سكن<small>مساحتكما للتوافق</small></div>
+    <div class="mark">سكن<small>مساحتنا للتوافق</small></div>
     <div class="bar-actions" id="barActions"></div>
   </div>
 </header>
@@ -187,7 +187,7 @@
 
   const STATE_AR = {
     not_started:"لم يبدأ", in_progress:"قيد العمل", completed:"مكتمل",
-    open:"بانتظار إجابتيكما", answered_by_one:"أجاب أحدكما", ready_to_reveal:"جاهز للكشف",
+    open:"بانتظار ردّ كلٍّ مننا", answered_by_one:"ردّ واحد مننا", ready_to_reveal:"جاهز للكشف",
     revealed:"مكشوف", decided:"تقرّر", draft:"مسودّة", confirmed:"مؤكَّد", revisited:"قيد المراجعة",
   };
 
@@ -324,14 +324,14 @@
 
   async function renderJourneys(){
     S.view="journeys"; S.resourceId=null;
-    el.innerHTML = pageTitle("الرحلة","منهج التأهيل على 6 مراحل متتابعة — ابدأ من فوق وانزل.") + `<div id="jBody"><div class="empty">…تحميل</div></div>`;
+    el.innerHTML = pageTitle("الرحلة","منهجنا على 6 مراحل متتابعة — نبدأ من فوق وننزل.") + `<div id="jBody"><div class="empty">…تحميل</div></div>`;
     try{
       const items = await api("GET","/resources");
       const seeded = items.some(r=>r.seed);
       let html = "";
       if(!seeded){
         html += `<div class="card"><div class="eyebrow">ابدأ الرحلة</div><h2>استورد المنهج</h2>
-          <p class="muted" style="margin-top:-6px">يُضاف لمكتبتكم منهج التأهيل (دورات + كتب) مرتّبًا على 6 مراحل بالأولوية — جاهز للحوار والقرارات. تقدروا تفتحوا أي مورد وتولّدوا أسئلة نقاش منه.</p>
+          <p class="muted" style="margin-top:-6px">يتضاف لمكتبتنا منهج التأهيل (دورات + كتب) مرتّب على 6 مراحل بالأولوية — جاهز للحوار والقرارات. نقدر نفتح أي مورد ونولّد منه أسئلة نقاش.</p>
           <button class="btn accent" data-act="seedCurriculum">استورد المنهج</button></div>`;
       }
       for(const st of STAGES){
@@ -362,7 +362,7 @@
       const bothDone = r => r.prog && r.prog.mine==='completed' && r.prog.partner==='completed';
       const open = items.filter(r=> !bothDone(r));
       const box = document.getElementById("loops");
-      if(!open.length){ box.innerHTML = `<div class="empty">مفيش حلقات مفتوحة 🌿 خلّصتوا كل المواد المضافة. تقدروا تضيفوا مورد جديد من المكتبة.</div>`; return; }
+      if(!open.length){ box.innerHTML = `<div class="empty">مفيش حلقات مفتوحة 🌿 خلّصنا كل المواد المضافة. نقدر نضيف مورد جديد من المكتبة.</div>`; return; }
       box.innerHTML = `<div class="eyebrow" style="margin-bottom:10px">حلقات مفتوحة</div>` + open.slice(0,8).map(r=>`
         <div class="card res" data-open="${esc(r.id)}">
           <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
@@ -376,7 +376,7 @@
 
   async function renderTasks(){
     S.view="tasks"; S.resourceId=null;
-    el.innerHTML = pageTitle("المهام ومخطّط الفرح","مهام تتقسّم بينكم بمسؤول وتاريخ — فريق واحد.") + `
+    el.innerHTML = pageTitle("المهام ومخطّط الفرح","مهامنا بتتقسّم بينّا بمسؤول وتاريخ — إحنا فريق واحد.") + `
       <div class="card tight">
         <div class="row"><label>المهمة</label><input id="tTitle" type="text" placeholder="مثلًا: حجز القاعة"></div>
         <div class="row"><label>المسؤول</label>
@@ -408,7 +408,7 @@
 
   async function renderBudget(){
     S.view="budget"; S.resourceId=null;
-    el.innerHTML = pageTitle("الميزانية المشتركة","تتبّعوا فين رايحة الفلوس: مخطّط، مدفوع، ومتبقّي.") + `
+    el.innerHTML = pageTitle("الميزانية المشتركة","نتتبّع فلوسنا رايحة فين: مخطّط، مدفوع، ومتبقّي.") + `
       <div class="card tight">
         <div class="row"><label>اسم البند</label><input id="bLabel" type="text" placeholder="مثلًا: قاعة الفرح"></div>
         <div class="row"><label>الفئة (اختياري)</label><input id="bCat" type="text" placeholder="فرح / جهاز / بيت / فواتير"></div>
@@ -438,7 +438,7 @@
 
   async function renderShopping(){
     S.view="shopping"; S.resourceId=null;
-    el.innerHTML = pageTitle("قائمة المشتريات","قائمة حيّة للبيت — الشطب بيظهر للطرفين.") + `
+    el.innerHTML = pageTitle("قائمة المشتريات","قائمة حيّة لبيتنا — الشطب بيظهر للاتنين.") + `
       <div class="card tight"><div class="row"><label>الصنف</label><input id="sText" type="text" placeholder="حليب، بيض، إصلاح سباكة…"></div>
         <button class="btn" data-act="addShop">أضِف</button></div>
       <div id="sList"><div class="empty">…تحميل</div></div>`;
@@ -459,7 +459,7 @@
 
   async function renderSettings(){
     S.view="settings"; S.resourceId=null;
-    el.innerHTML = pageTitle("الإعدادات","الخصوصية أولًا. بياناتكم ملككم.") + `
+    el.innerHTML = pageTitle("الإعدادات","الخصوصية أولًا. بياناتنا ملكنا.") + `
       <div class="card"><div class="eyebrow">الميثاق</div><p class="muted" style="margin-top:-6px">كود ميثاقكم: <b>${esc(S.code||"—")}</b> — شاركه مع شريكك مرة واحدة فقط.</p></div>
       <div class="card"><div class="eyebrow">بياناتك</div><h2>تصدير كل البيانات</h2>
         <p class="muted" style="margin-top:-6px">المكتبة، القرارات، المهام، الميزانية، والمشتريات في ملف JSON واحد.</p>
@@ -471,11 +471,11 @@
     el.innerHTML = `
       <div class="center">
         <h1 class="display">أهلًا بكما في سكن</h1>
-        <p class="lede">مساحة خاصة لكما وحدكما: حوّلا ما تقرآنه وتسمعانه إلى فهمٍ مشترك، ثم إلى قرار تتفقان عليه.</p>
+        <p class="lede">مساحتنا إحنا الاتنين بس: نحوّل اللي نقراه ونسمعه لفهم مشترك، وبعدين لقرار نتفق عليه.</p>
 
         <div class="card">
           <div class="eyebrow">طرفٌ جديد</div>
-          <h2>ابدآ ميثاقًا جديدًا</h2>
+          <h2>ابدأ ميثاقنا الجديد</h2>
           <p class="muted" style="margin-top:-6px">أنشئ المساحة، وستحصل على كودٍ تشاركه مع شريكك لينضم.</p>
           <div class="row"><label>اسمك (اختياري)</label><input id="nameC" type="text" placeholder="مثلًا: مصطفى"></div>
           <button class="btn" data-act="create">إنشاء ميثاق</button>
@@ -501,7 +501,7 @@
 
   async function renderLibrary(){
     S.view="library"; S.resourceId=null;
-    el.innerHTML = `<h1 class="display">المكتبة</h1><p class="lede">كل ما تعملان عليه معًا، في مكانٍ واحد.</p><div id="list"><div class="empty">…تحميل</div></div>
+    el.innerHTML = `<h1 class="display">المكتبة</h1><p class="lede">كل ما نعمل عليه معًا، في مكانٍ واحد.</p><div id="list"><div class="empty">…تحميل</div></div>
       <div class="card">
         <div class="eyebrow">استيراد سريع</div>
         <h2>أضِف عدة روابط دفعة واحدة</h2>
@@ -521,7 +521,7 @@
       const items = await api("GET","/resources");
       items.sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (hasYt(b)-hasYt(a)) || (b.createdAt-a.createdAt));
       const list = document.getElementById("list");
-      if(!items.length){ list.innerHTML = `<div class="empty">لا توجد موارد بعد. أضِف أول مورد بالأسفل لتبدآ.</div>`; return; }
+      if(!items.length){ list.innerHTML = `<div class="empty">لسه مفيش موارد. ضيف أول مورد بالأسفل ونبدأ.</div>`; return; }
       list.innerHTML = items.map(r=>`
         <div class="card res" data-open="${esc(r.id)}">
           <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
@@ -581,7 +581,7 @@
     let n; try{ n = await api("GET","/resources/"+S.resourceId+"/notes"); }catch(e){ t.innerHTML=`<div class="empty">${esc(errMsg(e))}</div>`; return; }
     t.innerHTML = `
       <div class="card"><div class="eyebrow">ملاحظات مشتركة</div>
-        <p class="muted" style="margin-top:-6px">يشوفها ويعدّلها الطرفان.</p>
+        <p class="muted" style="margin-top:-6px">نشوفها ونعدّلها إحنا الاتنين.</p>
         <textarea id="sharedNote" placeholder="نقاط اتفقتوا تكتبوها سوا…">${esc(n.shared)}</textarea>
         <div class="actions" style="margin-top:8px"><span class="spacer"></span><button class="btn sm" data-act="saveSharedNote">احفظ المشتركة</button></div></div>
       <div class="card"><div class="eyebrow">ملاحظاتك الخاصة</div>
@@ -597,14 +597,14 @@
       <div class="card">
         <div class="eyebrow">الملخص</div>
         ${ sum ? `<p style="white-space:pre-wrap">${esc(sum.content)}</p>`
-               : `<p class="muted">لم يُولَّد ملخص بعد. سيُولّده الذكاء الاصطناعي من نص المصدر (هو فقط يلخّص ويقترح الأسئلة — القرار لكما وحدكما).</p>` }
+               : `<p class="muted">لم يُولَّد ملخص بعد. سيُولّده الذكاء الاصطناعي من نص المصدر (هو فقط يلخّص ويقترح الأسئلة — القرار لينا إحنا بس).</p>` }
         <div class="actions" style="margin-top:12px">
           <button class="btn ${sum?'ghost':''}" data-act="genSummary">${sum?'إعادة التوليد':'وَلِّد الملخص'}</button>
         </div>
       </div>
       <div class="card tight">
-        <div class="actions"><span class="muted">جاهزان للحوار؟</span><div class="spacer"></div>
-        <button class="btn soft" data-act="goDiscuss">اذهبا إلى الحوار ←</button></div>
+        <div class="actions"><span class="muted">جاهزين للحوار؟</span><div class="spacer"></div>
+        <button class="btn soft" data-act="goDiscuss">يلا نبدأ الحوار ←</button></div>
       </div>`;
   }
 
@@ -673,7 +673,7 @@
     t.innerHTML = list + `
       <div class="card">
         <div class="eyebrow">تسجيل قرار</div>
-        <h2>على ماذا اتفقتما؟</h2>
+        <h2>على إيه اتفقنا؟</h2>
         ${ qs.length ? `
         <div class="row"><label>صياغة القرار</label><textarea id="dStmt" placeholder="مثلًا: اتفقنا على تخصيص ليلة أسبوعية للحوار."></textarea></div>
         <div class="row"><label>السياق (اختياري)</label><textarea id="dContext" placeholder="إيه اللي أدّى للقرار ده؟"></textarea></div>
@@ -687,14 +687,14 @@
         <label>اربط القرار بالأسئلة التي ناقشتماها</label>
         <div class="checks">${qs.map(q=>`<label><input type="checkbox" class="dq" value="${esc(q.id)}"><span>${esc(q.text)}</span></label>`).join("")}</div>
         <button class="btn" data-act="createDec">سجّل القرار (مسودّة)</button>
-        <p class="muted" style="font-size:12.5px; margin-top:10px">يصبح القرار نهائيًا فقط بعد أن يؤكّده الطرفان.</p>
+        <p class="muted" style="font-size:12.5px; margin-top:10px">القرار يبقى نهائي بس لما نأكّده إحنا الاتنين.</p>
         ` : `<p class="muted">اكشفا سؤالًا واحدًا على الأقل في تبويب الحوار أولًا، ثم عودا لتسجيل قراركما.</p>` }
       </div>`;
   }
 
   async function renderDiscussionsAll(){
     S.view="discussions"; S.resourceId=null;
-    el.innerHTML = pageTitle("المناقشات","كل الأسئلة عبر موادكم في مكان واحد.") + `<div id="dscBody"><div class="empty">…تحميل</div></div>`;
+    el.innerHTML = pageTitle("المناقشات","كل الأسئلة من موادنا في مكان واحد.") + `<div id="dscBody"><div class="empty">…تحميل</div></div>`;
     try{
       const [qs, res] = await Promise.all([api("GET","/questions"), api("GET","/resources")]);
       const titles = Object.fromEntries(res.map(r=>[r.id, r.title]));
@@ -711,7 +711,7 @@
 
   async function renderDecisionLog(){
     S.view="decisionlog"; S.resourceId=null;
-    el.innerHTML = pageTitle("سجل القرارات","كل ما اتفقتم عليه — مرتّب ودائم.") + `<div id="decBody"><div class="empty">…تحميل</div></div>`;
+    el.innerHTML = pageTitle("سجل القرارات","كل ما اتفقنا عليه — مرتّب ودائم.") + `<div id="decBody"><div class="empty">…تحميل</div></div>`;
     try{
       const decs = await api("GET","/decisions");
       document.getElementById("decBody").innerHTML = decs.length ? decs.map(d=> decCard(d,{inResource:false})).join("")
@@ -724,7 +724,7 @@
   const moodLabel = (v)=> (MOOD_OPT.find(m=>m[0]===v)||["","—"])[1];
   async function renderConnect(){
     S.view="connect"; S.resourceId=null;
-    el.innerHTML = pageTitle("تواصلنا","مساحة للمودة: أمنياتكم، امتنانكم، رسائلكم، وما يصعب قوله.") + `<div id="cBody"><div class="empty">…تحميل</div></div>`;
+    el.innerHTML = pageTitle("تواصلنا","مساحة لمودّتنا: أمنياتنا، امتناننا، رسايلنا، واللي يصعب قوله.") + `<div id="cBody"><div class="empty">…تحميل</div></div>`;
     try{
       const [wishes,grat,caps,mood,safe] = await Promise.all([
         api("GET","/wishes"), api("GET","/gratitude"), api("GET","/capsules"), api("GET","/mood"), api("GET","/safespace")
@@ -744,7 +744,7 @@
             <button class="linkbtn" data-act="delWish" data-id="${esc(w.id)}">حذف</button></div>`).join("") : `<p class="muted" style="font-size:13px">ابدأوا بأمنية واحدة.</p>`}</div>
 
         <div class="card"><div class="eyebrow">مساحة الامتنان</div>
-          <p class="muted" style="margin-top:-6px;font-size:13px">اكتب شيئًا تشكر فيه شريكك — يراه الطرفان.</p>
+          <p class="muted" style="margin-top:-6px;font-size:13px">اكتب حاجة بتشكر فيها شريك حياتك — نشوفها إحنا الاتنين.</p>
           <div class="row"><input id="gText" type="text" placeholder="ممتنّ لك لأنك…"></div>
           <div class="actions"><span class="spacer"></span><button class="btn sm" data-act="addGrat">أضِف</button></div>
           ${grat.length? grat.map(g=>`<div class="actions" style="justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)">
@@ -936,7 +936,7 @@
     if(cat){ [...cat.parentElement.children].forEach(x=>x.classList.toggle("on", x===cat)); return; }
   });
 
-  document.getElementById("foot").innerHTML = "سكن · مساحة خاصة لطرفين — خاصّة بطبيعتها، بلا مشاركة عامة.";
+  document.getElementById("foot").innerHTML = "سكن · مساحتنا إحنا الاتنين — خاصّة بطبيعتها، من غير مشاركة عامة.";
   render();
 })();
 </script>
