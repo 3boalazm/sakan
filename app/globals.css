@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary:      #1e3a2f;
+  --primary-light:#2d5c47;
+  --gold:         #c8a84b;
+  --gold-soft:    #e8d5a0;
+  --ink:          #1a2318;
+  --ink-muted:    #4a6358;
+  --surface:      #f8f5ec;
+  --line:         #e0d9cc;
+  --accent:       #7c4b5b;
+  --accent-soft:  #f0e8ec;
+}
+
+[data-theme="dark"] {
+  --primary:      #2d5c47;
+  --primary-light:#3d7a5e;
+  --gold:         #e8d5a0;
+  --surface:      #0d1f18;
+  --line:         #1e3a2f;
+  --ink:          #f0ede6;
+  --ink-muted:    #8aab99;
+}
+
+[data-theme="oled"] {
+  --primary:      #2d5c47;
+  --surface:      #000000;
+  --line:         #111;
+  --ink:          #f0ede6;
+  --ink-muted:    #8aab99;
+}
+
+* { direction: rtl; }
+body { background: var(--surface); color: var(--ink); font-family: 'Tajawal', system-ui, sans-serif; }
+
+.card {
+  @apply rounded-2xl p-4 mb-3 border;
+  background: color-mix(in srgb, var(--surface) 80%, white);
+  border-color: var(--line);
+}
+
+.btn {
+  @apply px-4 py-2 rounded-xl font-medium transition-all text-sm;
+  background: var(--primary);
+  color: var(--gold);
+}
+.btn:hover { background: var(--primary-light); }
+.btn-ghost {
+  @apply px-4 py-2 rounded-xl font-medium transition-all text-sm border;
+  border-color: var(--line);
+  color: var(--ink-muted);
+}
+.btn-accent {
+  @apply px-4 py-2 rounded-xl font-medium text-sm;
+  background: var(--accent);
+  color: white;
+}
+
+.pill {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--ink-muted);
+}
+.pill-warn { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
+
+.display { @apply text-2xl font-bold; color: var(--ink); }
+.lede    { @apply text-sm; color: var(--ink-muted); }
+.eyebrow { @apply text-xs font-semibold uppercase tracking-wider; color: var(--gold); }
+
+.inp {
+  @apply w-full rounded-xl px-3 py-2 text-sm outline-none border;
+  background: color-mix(in srgb, var(--surface) 60%, white);
+  border-color: var(--line);
+  color: var(--ink);
+}
+.inp:focus { border-color: var(--primary); }
