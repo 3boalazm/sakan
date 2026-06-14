@@ -289,6 +289,38 @@
   .qn-del{ background:none; border:none; cursor:pointer; font-size:13px; color:var(--text-muted); opacity:.5; padding:2px 6px; border-radius:6px; transition:opacity .15s; }
   .qn-del:hover{ opacity:1; color:#e57373; }
   .qn-badge{ display:inline-flex; align-items:center; gap:4px; background:rgba(201,161,74,.15); border:1px solid rgba(201,161,74,.3); border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700; color:var(--gold); }
+
+  /* ========== Device PIN Lock ========== */
+  .pin-screen{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 20px; }
+  .pin-logo{ font-family:'ThmanyahSerifDisplay',serif; font-size:52px; font-weight:700; color:#fff; line-height:1; text-shadow:0 6px 28px rgba(0,0,0,.4); margin-bottom:4px; }
+  .pin-sub{ color:rgba(244,236,214,.75); font-size:13.5px; margin-bottom:28px; text-align:center; }
+  .pin-name-svg{ display:flex; justify-content:center; margin:0 0 8px; }
+  .pin-name-svg svg{ height:68px; width:auto; max-width:76%; filter:drop-shadow(0 4px 16px rgba(0,0,0,.4)); }
+  [data-theme="light"] .pin-name-svg svg{ filter:drop-shadow(0 3px 12px rgba(0,0,0,.25)); }
+  .pin-who-select{ display:flex; gap:12px; margin-bottom:28px; }
+  .pin-who-btn{ flex:1; border:none; border-radius:20px; padding:18px 10px 14px; cursor:pointer; transition:all .22s; font-family:inherit;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:rgba(244,236,214,.85); display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .pin-who-btn.sel{ background:linear-gradient(145deg,rgba(201,161,74,.25),rgba(42,122,95,.2)); border-color:rgba(201,161,74,.55); color:#fff; box-shadow:0 6px 20px -6px rgba(201,161,74,.3); }
+  .pin-who-btn svg{ height:56px; width:auto; max-width:130px; }
+  .pin-who-name{ font-size:13px; font-weight:700; }
+  .pin-card{ width:100%; max-width:360px; background:rgba(10,28,20,.62); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+    border:1px solid rgba(255,255,255,.14); border-radius:28px; padding:28px 24px 24px; box-shadow:0 28px 64px -18px rgba(0,0,0,.6); }
+  .pin-dots{ display:flex; justify-content:center; gap:16px; margin:12px 0 22px; }
+  .pin-dot{ width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.35); background:transparent; transition:all .15s; }
+  .pin-dot.fill{ background:linear-gradient(135deg,#c9a14a,#e6c97a); border-color:#e6c97a; box-shadow:0 0 10px rgba(201,161,74,.5); }
+  .pin-dot.shake{ animation:pinShake .4s cubic-bezier(.36,.07,.19,.97) both; }
+  @keyframes pinShake{ 10%,90%{transform:translateX(-2px)} 20%,80%{transform:translateX(4px)} 30%,50%,70%{transform:translateX(-4px)} 40%,60%{transform:translateX(4px)} }
+  .pin-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .pin-key{ border:none; border-radius:16px; padding:16px 10px; font-family:'ThmanyahSerifDisplay',serif; font-size:24px; font-weight:700; cursor:pointer; transition:all .12s;
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.12); color:#fff; }
+  .pin-key:active{ transform:scale(.93); background:rgba(201,161,74,.35); }
+  .pin-key.del{ font-family:inherit; font-size:18px; }
+  .pin-key.ok{ background:linear-gradient(135deg,#c9a14a,#2a7a5f); color:#fff; font-family:inherit; font-size:15px; font-weight:800; letter-spacing:.03em; }
+  .pin-hint{ text-align:center; color:rgba(244,236,214,.6); font-size:12.5px; margin-top:14px; }
+  .pin-hint a{ color:#f5d68a; font-weight:700; text-decoration:none; cursor:pointer; }
+  .pin-hint a:hover{ text-decoration:underline; }
+  .pin-err{ color:#ff8a80; font-size:13px; text-align:center; margin:8px 0 0; min-height:18px; }
+  .pin-setup-label{ color:rgba(244,236,214,.82); font-size:14px; text-align:center; margin-bottom:16px; font-weight:600; }
 </style>
 </head>
 <body>
@@ -318,13 +350,30 @@
     : "https://sakan-md.vercel.app/api";
   const API = () => localStorage.getItem("sakan_api") || DEFAULT_API;
 
+  // PIN Lock helpers
+  const PIN_KEY   = "sakan_pin";          // hashed PIN per device
+  const PIN_WHO   = "sakan_pin_who";      // "m" or "d" — who locked this device
+  const PIN_TOKEN = "sakan_token";        // session token
+  function pinHash(p){ let h=0; for(let i=0;i<p.length;i++) h=((h<<5)-h)+p.charCodeAt(i)|0; return h.toString(36); }
+  const hasPinSetup = () => !!localStorage.getItem(PIN_KEY) && !!localStorage.getItem(PIN_TOKEN);
+  const pinCorrect  = (p)=> pinHash(p)===localStorage.getItem(PIN_KEY);
+  const devWho      = () => localStorage.getItem(PIN_WHO)||null;
+
+  // Initial view logic: token + PIN set → show pin screen; token, no pin → home; no token → onboarding
+  const _hasToken = !!localStorage.getItem("sakan_token");
+  const _hasPin   = !!localStorage.getItem(PIN_KEY);
+  const _initView = !_hasToken ? "onboarding" : (_hasPin ? "pinlock" : "home");
+
   const S = {
-    token: localStorage.getItem("sakan_token") || null,
+    token: _hasToken ? localStorage.getItem("sakan_token") : null,
     code:  localStorage.getItem("sakan_code")  || null,
     name:  localStorage.getItem("sakan_name")  || null,
     email: localStorage.getItem("sakan_email") || null,
-    view: localStorage.getItem("sakan_token") ? "home" : "onboarding", resourceId: null, tab: "summary",
+    view: _initView, resourceId: null, tab: "summary",
     detail: null, responses: {},
+    pinEntry: "", pinStep: "lock",  // lock | setup1 | setup2 | whoselect
+    pinWho: devWho(),               // "m"=مصطفى "d"=ضحى
+    pinSetup1: "",                  // first entry in setup flow
   };
 
   const STATE_AR = {
@@ -384,7 +433,12 @@
     }catch(e){}
     return u.length>44 ? u.slice(0,44)+"…" : u;
   }
-  function logout(){ localStorage.removeItem("sakan_token"); localStorage.removeItem("sakan_code"); localStorage.removeItem("sakan_name"); S.token=S.code=S.name=null; S.view="onboarding"; closeDrawer(); render(); }
+  function logout(){
+    localStorage.removeItem("sakan_token"); localStorage.removeItem("sakan_code");
+    localStorage.removeItem("sakan_name"); localStorage.removeItem(PIN_KEY); localStorage.removeItem(PIN_WHO);
+    S.token=S.code=S.name=null; S.pinEntry=""; S.pinWho=null;
+    S.view="onboarding"; closeDrawer(); render();
+  }
 
   // ---------- الدرج الجانبي (تقسيم زي زاد) ----------
   const NAVSECS = [
@@ -446,7 +500,8 @@
   // ---------- views ----------
   function render(){
     renderBar();
-    document.body.classList.toggle("pre-auth", !S.token);
+    document.body.classList.toggle("pre-auth", !S.token || S.view==="pinlock");
+    if(S.view==="pinlock") return renderPinLock();
     if(!S.token){ return renderOnboarding(); }
     if(S.view==="resource" && S.resourceId){ return renderResource(); }
     if(S.view==="home") return renderHome();
@@ -558,6 +613,144 @@
     }catch(e){ document.getElementById("jBody").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
   }
 
+
+
+  // ========== PIN Lock ==========
+  function getNameSVG(who){
+    // who: "m"=مصطفى(ni=2), "d"=ضحى(ni=1)
+    const ni = who==="m" ? 2 : who==="d" ? 1 : 0;
+    if(!ni) return "";
+    const src = document.querySelector('#nameAssets [data-ni="'+ni+'"]');
+    return src ? src.outerHTML : "";
+  }
+
+  function renderPinLock(){
+    S.view="pinlock";
+    document.body.classList.add("pre-auth");
+    const bg = document.getElementById("app");
+
+    const step = S.pinStep || "lock";
+    const who  = S.pinWho;  // "m" | "d" | null
+
+    // ---- Who-select (first time, no device owner set) ----
+    if(step==="whoselect" || (!who && step==="lock")){
+      S.pinStep="whoselect";
+      const svg1 = getNameSVG("d");
+      const svg2 = getNameSVG("m");
+      bg.innerHTML = `<div class="pin-screen">
+        <div class="pin-logo">سكن</div>
+        <p class="pin-sub">من بيستخدم الجهاز ده؟</p>
+        <div class="pin-who-select">
+          <button class="pin-who-btn ${S.pinWhoSel==='d'?'sel':''}" data-act="pinWhoSel" data-w="d">
+            ${svg1||'<span class="pin-who-name" style="font-size:28px;font-family:ThmanyahSerifDisplay,serif">ضحى</span>'}
+            <span class="pin-who-name">ضحى</span>
+          </button>
+          <button class="pin-who-btn ${S.pinWhoSel==='m'?'sel':''}" data-act="pinWhoSel" data-w="m">
+            ${svg2||'<span class="pin-who-name" style="font-size:28px;font-family:ThmanyahSerifDisplay,serif">مصطفى</span>'}
+            <span class="pin-who-name">مصطفى</span>
+          </button>
+        </div>
+        ${S.pinWhoSel?`<button class="auth-btn" style="max-width:340px" data-act="pinWhoConfirm">تأكيد</button>`:""}
+        <p class="pin-hint" style="margin-top:18px"><a href="#" data-act="pinSkip">تخطّي القفل وادخل مباشرة ←</a></p>
+      </div>`;
+      return;
+    }
+
+    // ---- Setup flow: enter PIN twice ----
+    if(step==="setup1" || step==="setup2"){
+      const label = step==="setup1" ? "أنشئ كود PIN جديد (٤ أرقام)" : "أكّد الكود تاني";
+      const svg   = getNameSVG(who);
+      const entry = S.pinEntry||"";
+      bg.innerHTML = `<div class="pin-screen">
+        <div class="pin-logo">سكن</div>
+        ${svg?`<div class="pin-name-svg">${svg}</div>`:""}
+        <div class="pin-card">
+          <p class="pin-setup-label">${label}</p>
+          <div class="pin-dots" id="pinDots">
+            ${[0,1,2,3].map(i=>`<div class="pin-dot${i<entry.length?' fill':''}"></div>`).join("")}
+          </div>
+          <div class="pin-grid">${pinGridHTML()}</div>
+          <p class="pin-err" id="pinErr"></p>
+        </div>
+        <p class="pin-hint" style="margin-top:18px"><a href="#" data-act="pinSkip">تخطّي الإعداد</a></p>
+      </div>`;
+      return;
+    }
+
+    // ---- Lock screen: enter PIN to unlock ----
+    const svg  = getNameSVG(who);
+    const name = who==="m" ? "مصطفى" : who==="d" ? "ضحى" : "";
+    const entry = S.pinEntry||"";
+    bg.innerHTML = `<div class="pin-screen">
+      <div class="pin-logo">سكن</div>
+      ${svg?`<div class="pin-name-svg">${svg}</div>`:""}
+      <div class="pin-card">
+        <p class="pin-setup-label" style="margin-bottom:8px">أهلًا${name?" "+name:""}، ادخل الكود</p>
+        <div class="pin-dots" id="pinDots">
+          ${[0,1,2,3].map(i=>`<div class="pin-dot${i<entry.length?' fill':''}"></div>`).join("")}
+        </div>
+        <div class="pin-grid">${pinGridHTML()}</div>
+        <p class="pin-err" id="pinErr"></p>
+      </div>
+      <p class="pin-hint" style="margin-top:18px"><a href="#" data-act="pinForgot">نسيت الكود؟</a></p>
+    </div>`;
+  }
+
+  function pinGridHTML(){
+    const keys = ["١","٢","٣","٤","٥","٦","٧","٨","٩","","٠","⌫"];
+    return keys.map((k,i)=>{
+      if(k==="") return `<div></div>`;
+      if(k==="⌫") return `<button class="pin-key del" data-act="pinKey" data-k="del">⌫</button>`;
+      const digit = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"].indexOf(k).toString();
+      return `<button class="pin-key" data-act="pinKey" data-k="${digit}">${k}</button>`;
+    }).join("");
+  }
+
+  function pinUpdateDots(entry){
+    const dots = document.querySelectorAll(".pin-dot");
+    dots.forEach((d,i)=>{ d.classList.toggle("fill", i<entry.length); });
+  }
+
+  function pinShakeDots(){
+    const dots = document.querySelectorAll(".pin-dot");
+    dots.forEach(d=>{ d.classList.add("shake"); setTimeout(()=>d.classList.remove("shake"),500); });
+  }
+
+  function pinHandleKey(k){
+    const step = S.pinStep||"lock";
+    if(k==="del"){ S.pinEntry=(S.pinEntry||"").slice(0,-1); pinUpdateDots(S.pinEntry); return; }
+    S.pinEntry=(S.pinEntry||"")+k;
+    pinUpdateDots(S.pinEntry);
+    if(S.pinEntry.length<4) return;
+
+    // ---- 4 digits entered ----
+    const pin = S.pinEntry;
+    S.pinEntry="";
+
+    if(step==="setup1"){
+      S.pinSetup1=pin; S.pinStep="setup2"; renderPinLock(); return;
+    }
+    if(step==="setup2"){
+      if(pin!==S.pinSetup1){
+        pinShakeDots();
+        const e=document.getElementById("pinErr"); if(e) e.textContent="الكودان مش متطابقَين، حاول تاني";
+        S.pinStep="setup1"; S.pinSetup1="";
+        setTimeout(()=>renderPinLock(),700); return;
+      }
+      localStorage.setItem(PIN_KEY, pinHash(pin));
+      document.body.classList.remove("pre-auth");
+      S.pinStep="lock"; S.view="home"; render(); return;
+    }
+    if(step==="lock"){
+      if(pinCorrect(pin)){
+        document.body.classList.remove("pre-auth");
+        S.pinStep="lock"; S.view="home"; render(); return;
+      }
+      pinShakeDots();
+      const e=document.getElementById("pinErr"); if(e) e.textContent="كود غلط — حاول تاني";
+      setTimeout(()=>pinUpdateDots(""),700);
+    }
+  }
 
   // ========== QuickNotes (مفكّرتنا) ==========
   // localStorage helpers — بتشتغل من غير backend
@@ -763,8 +956,22 @@
 
   async function renderSettings(){
     S.view="settings"; S.resourceId=null;
+    const pinSet = !!localStorage.getItem(PIN_KEY);
+    const whoName = devWho()==="m"?"مصطفى":devWho()==="d"?"ضحى":"";
     el.innerHTML = pageTitle("الإعدادات","الخصوصية أولًا. بياناتنا ملكنا.") + `
       <div class="card"><div class="eyebrow">الميثاق</div><p class="muted" style="margin-top:-6px">كود ميثاقكم: <b>${esc(S.code||"—")}</b> — شاركه مع شريكك مرة واحدة فقط.</p></div>
+
+      <div class="card">
+        <div class="eyebrow">قفل الجهاز 🔐</div>
+        <p class="muted" style="margin-top:-6px">
+          ${pinSet ? `كود PIN مفعّل على الجهاز ده${whoName?" ("+whoName+")":" "}.` : "مفيش كود PIN على الجهاز ده — الأب مكشوف لأي حد."}
+        </p>
+        <div class="actions" style="flex-wrap:wrap;gap:8px;margin-top:10px">
+          <button class="btn sm" data-act="setupPin">${pinSet?"تغيير الكود":"إعداد كود PIN"}</button>
+          ${pinSet?`<button class="btn ghost sm" data-act="clearPin">إزالة القفل</button>`:""}
+        </div>
+      </div>
+
       <div class="card"><div class="eyebrow">بياناتك</div><h2>تصدير كل البيانات</h2>
         <p class="muted" style="margin-top:-6px">المكتبة، القرارات، المهام، الميزانية، والمشتريات في ملف JSON واحد.</p>
         <button class="btn" data-act="export">تصدير (JSON)</button></div>
@@ -1314,6 +1521,38 @@
       if(act==="discussions"){ S.view="discussions"; render(); return; }
       if(act==="decisionlog"){ S.view="decisionlog"; render(); return; }
       if(act==="connect"){ S.view="connect"; render(); return; }
+
+      // ---- PIN Lock actions ----
+      if(act==="pinKey"){ pinHandleKey(node.dataset.k); return; }
+      if(act==="pinWhoSel"){ S.pinWhoSel=node.dataset.w; renderPinLock(); return; }
+      if(act==="pinWhoConfirm"){
+        const w=S.pinWhoSel; if(!w) return;
+        localStorage.setItem(PIN_WHO,w); S.pinWho=w; S.pinWhoSel=null;
+        // Check if PIN already set
+        if(localStorage.getItem(PIN_KEY)){ S.pinStep="lock"; renderPinLock(); }
+        else { S.pinStep="setup1"; S.pinEntry=""; renderPinLock(); }
+        return;
+      }
+      if(act==="pinSkip"){
+        // Skip without setting PIN — go straight home
+        localStorage.removeItem(PIN_KEY); localStorage.removeItem(PIN_WHO);
+        document.body.classList.remove("pre-auth");
+        S.pinStep="lock"; S.view="home"; render(); return;
+      }
+      if(act==="pinForgot"){
+        if(!confirm("هتتطلع من الجلسة وتعيد تسجيل الدخول — تكمل؟")) return;
+        logout(); return;
+      }
+      if(act==="clearPin"){
+        if(!confirm("هتشيل قفل الـ PIN — أي حد ممسك الموبايل يقدر يدخل. متأكد؟")) return;
+        localStorage.removeItem(PIN_KEY); localStorage.removeItem(PIN_WHO);
+        S.pinWho=null; toast("اتشال القفل"); renderSettings(); return;
+      }
+      if(act==="setupPin"){
+        // Called from Settings
+        S.pinStep="setup1"; S.pinEntry=""; S.pinSetup1="";
+        S.view="pinlock"; renderPinLock(); return;
+      }
       if(act==="quicknotes"){ S.view="quicknotes"; S.qnPanel="shared"; render(); return; }
       if(act==="qnPanel"){ S.qnPanel=node.dataset.p; renderQuickNotes(); return; }
       if(act==="qnAdd"){ qnDoAdd(node.dataset.scope||"shared"); return; }
