@@ -4,20 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Sakan — J1 backend, one codebase for Vercel + Railway, Firebase (Firestore) store",
-  "engines": {
-    "node": ">=18"
-  },
-  "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "@capacitor/android": "^8.4.0",
-    "@capacitor/cli": "^8.4.0",
-    "@capacitor/core": "^8.4.0",
-    "@capacitor/keyboard": "^8.0.3",
-    "@capacitor/push-notifications": "^8.1.1",
-    "@capacitor/splash-screen": "^8.0.1",
-    "@capacitor/status-bar": "^8.0.2",
-    "firebase-admin": "^13.0.2"
-  }
+  "engines": { "node": ">=18" },
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "firebase-admin": "^13.0.2" }
 }
