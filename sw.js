@@ -1,25 +1,35 @@
-// sw.js — نسخة تنظيف وإصلاح
-// بتستبدل أي Service Worker قديم (Next.js / workbox)، بتمسح كل الكاش القديم،
-// وبتقدّم كل حاجة من الشبكة مباشرة (مفيش تقديم نسخ قديمة).
-// أي جهاز فتح الموقع قبل كده هيتنضّف أوتوماتيك بمجرد ما يزور الموقع ويعمل reload مرة.
+// sw.js — نسخة معدلة تدعم التحديث اليدوي بدون إعادة تحميل تلقائي
 
 self.addEventListener('install', () => {
-  // فعّل النسخة الجديدة على طول من غير انتظار
+  // تفعيل النسخة الجديدة فورًا دون انتظار
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    // امسح كل الكاش القديم بالكامل (Next.js + workbox + أي حاجة)
+    // مسح كل الكاش القديم
     const keys = await caches.keys();
     await Promise.all(keys.map((k) => caches.delete(k)));
-    // خُد السيطرة على كل التبويبات المفتوحة فورًا
+    // السيطرة على جميع التبويبات المفتوحة
     await self.clients.claim();
   })());
 });
 
+// استقبال رسائل من الواجهة (عند الضغط على زر "تحديث")
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    // إعلام جميع العملاء (الصفحات) بأنه تم التحديث ويمكنهم إعادة التحميل
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      clients.forEach(client => {
+        client.postMessage({ type: 'SW_UPDATED' });
+      });
+    });
+  }
+});
+
+// لا نتعامل مع fetch — كل الطلبات تذهب للشبكة مباشرة
 self.addEventListener('fetch', (event) => {
-  // POST وغيره يعدّي للشبكة عادي
-  if (event.request.method !== 'GET') return;
-  // مفيش respondWith → المتصفح بيجيب من الشبكة مباشرة، يعني مفيش نسخ قديمة تتقدّم أبدًا
+  // نمرر الطلبات كما هي دون تدخل من Service Worker
+  return;
 });
