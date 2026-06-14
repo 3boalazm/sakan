@@ -175,6 +175,47 @@
         toast("انضممت إلى الميثاق"); return;
       }
       if(act==="logout") return logout();
+      if(act==="downloadApk"){
+        // Show PWA install modal or link to APK
+        const isAndroid = /android/i.test(navigator.userAgent);
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        closeDrawer();
+        // Build modal
+        const overlay = document.createElement('div');
+        overlay.id = 'apk-modal';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(6,23,15,.72);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+        overlay.innerHTML = `<div style="background:linear-gradient(160deg,#0b3024,#1a5d47);border:1px solid rgba(201,161,74,.35);border-radius:28px;padding:28px 24px;max-width:380px;width:100%;direction:rtl;box-shadow:0 24px 60px rgba(0,0,0,.6)">
+          <div style="font-family:ThmanyahSerifDisplay,serif;font-size:26px;font-weight:700;color:#fff;margin-bottom:6px">📲 ثبّت سكن</div>
+          <p style="color:rgba(244,236,214,.8);font-size:14px;margin:0 0 22px;line-height:1.7">سكن تطبيق ويب تقدمي (PWA) — يتثبّت مباشرةً على الموبايل من غير متجر.</p>
+          ${isAndroid ? `
+          <div style="background:rgba(201,161,74,.12);border:1px solid rgba(201,161,74,.3);border-radius:16px;padding:16px;margin-bottom:14px">
+            <div style="color:#e6c97a;font-weight:700;font-size:15px;margin-bottom:10px">🤖 أندرويد (Chrome)</div>
+            <ol style="margin:0;padding-inline-start:18px;color:rgba(244,236,214,.85);font-size:13.5px;line-height:2">
+              <li>اضغط النقاط الثلاث <b>⋮</b> في Chrome</li>
+              <li>اختر <b style="color:#e6c97a">«إضافة إلى الشاشة الرئيسية»</b></li>
+              <li>اضغط <b style="color:#e6c97a">إضافة</b> ✅</li>
+            </ol>
+          </div>` : isIOS ? `
+          <div style="background:rgba(201,161,74,.12);border:1px solid rgba(201,161,74,.3);border-radius:16px;padding:16px;margin-bottom:14px">
+            <div style="color:#e6c97a;font-weight:700;font-size:15px;margin-bottom:10px">🍎 iPhone / iPad (Safari)</div>
+            <ol style="margin:0;padding-inline-start:18px;color:rgba(244,236,214,.85);font-size:13.5px;line-height:2">
+              <li>اضغط زر المشاركة <b>⎋</b> في Safari</li>
+              <li>اختر <b style="color:#e6c97a">«أضف إلى الشاشة الرئيسية»</b></li>
+              <li>اضغط <b style="color:#e6c97a">إضافة</b> ✅</li>
+            </ol>
+          </div>` : `
+          <div style="background:rgba(201,161,74,.12);border:1px solid rgba(201,161,74,.3);border-radius:16px;padding:16px;margin-bottom:14px">
+            <div style="color:#e6c97a;font-weight:700;font-size:15px;margin-bottom:8px">💻 الكمبيوتر (Chrome / Edge)</div>
+            <p style="color:rgba(244,236,214,.85);font-size:13.5px;margin:0">اضغط أيقونة التثبيت في شريط العنوان ← <b style="color:#e6c97a">«تثبيت سكن»</b></p>
+          </div>`}
+          ${isStandalone ? '<p style="color:#4dcc5e;font-size:13px;text-align:center;margin:0 0 16px">✅ سكن مثبّت على جهازك بالفعل!</p>' : ''}
+          <button onclick="document.getElementById('apk-modal').remove()" style="width:100%;background:linear-gradient(135deg,#c9a14a,#e6c97a);color:#1e3a2f;border:none;border-radius:14px;padding:14px;font-family:ThmanyahSans,Tajawal,sans-serif;font-size:16px;font-weight:800;cursor:pointer;margin-top:4px">فهمت 👍</button>
+        </div>`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+        return;
+      }
       if(act==="library"){ S.view="library"; S.tab="summary"; render(); return; }
 
       if(act==="setProg"){ await api("PUT","/resources/"+S.resourceId+"/progress",{ status:node.dataset.val }); renderResource(); return; }

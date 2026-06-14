@@ -116,7 +116,7 @@
     html += NAVSECS.map(sec=>{
       const APK_URL = "https://github.com/3boalazm/sakan/releases/latest/download/app-debug.apk";
       const links = sec.items.map(([act,label,ico])=>{
-        if(act==="downloadApk") return `<a class="dw-link" href="${APK_URL}" download="sakan.apk" style="text-decoration:none;display:flex;align-items:center;gap:12px;padding:13px 14px;margin:3px 0;border-radius:13px;color:#f4ecd6;font-size:16px;font-weight:600;background:linear-gradient(135deg,rgba(201,161,74,.18),rgba(42,122,95,.12));border:1px solid rgba(201,161,74,.3)"><span class="dw-ico" style="background:linear-gradient(135deg,#c9a14a,#1f5e4b)">${ico}</span><span>${label}</span><span style="margin-inline-start:auto;font-size:11px;color:#e6c97a;font-weight:700;letter-spacing:.5px">APK</span></a>`;
+        if(act==="downloadApk") return `<button class="dw-link" data-act="downloadApk" style="display:flex;align-items:center;gap:12px;padding:13px 14px;margin:3px 0;border-radius:13px;color:#f4ecd6;font-size:16px;font-weight:600;background:linear-gradient(135deg,rgba(201,161,74,.18),rgba(42,122,95,.12));border:1px solid rgba(201,161,74,.3);width:100%;text-align:start;cursor:pointer"><span class="dw-ico" style="background:linear-gradient(135deg,#c9a14a,#1f5e4b)">${ico}</span><span>${label}</span><span style="margin-inline-start:auto;font-size:11px;color:#e6c97a;font-weight:700;letter-spacing:.5px">APK</span></button>`;
         return `<button class="dw-link ${act===cur?'active':''}" data-act="${act}"><span class="dw-ico">${ico}</span><span>${label}</span></button>`;
       }).join("");
       if(!sec.title) return `<div class="dw-group">${links}</div>`;
