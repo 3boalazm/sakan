@@ -227,6 +227,7 @@
     const head = S.token
       ? (S.code? `<span class="chip" title="شارِك هذا الكود مع شريكك">كود الميثاق: ${esc(S.code)}</span>`:"")
         + `<button class="linkbtn" data-act="home">الرئيسية</button>`
+        + `<button class="linkbtn" data-act="journeys">الرحلة</button>`
         + `<button class="linkbtn" data-act="library">المكتبة</button>`
         + `<button class="linkbtn" data-act="tasks">المهام</button>`
         + `<button class="linkbtn" data-act="budget">الميزانية</button>`
@@ -253,6 +254,7 @@
     if(!S.token){ return renderOnboarding(); }
     if(S.view==="resource" && S.resourceId){ return renderResource(); }
     if(S.view==="home") return renderHome();
+    if(S.view==="journeys") return renderJourneys();
     if(S.view==="tasks") return renderTasks();
     if(S.view==="budget") return renderBudget();
     if(S.view==="shopping") return renderShopping();
@@ -264,6 +266,51 @@
   const OWN_AR = { m:"مصطفى", d:"ضحى", both:"الاتنين" };
   const fmtMoney = (n)=> (Number(n)||0).toLocaleString("ar-EG");
   function pageTitle(t, lede){ return `<h1 class="display">${esc(t)}</h1>${lede?`<p class="lede">${esc(lede)}</p>`:""}`; }
+
+  // ---------- phase 3: journeys & stages ----------
+  const STAGES = [
+    {n:0, title:"التأسيس والنيّة", theme:"الزواج كميثاق وعبادة ومقصد — قبل أي تفاصيل."},
+    {n:1, title:"الخطوبة والاختيار", theme:"فقه الخطوبة، معايير الاختيار، والتخطيط العملي."},
+    {n:2, title:"فهم الذات والآخر", theme:"بناء شخصية الطرفين وفهم طبيعة كلٍّ ودوره."},
+    {n:3, title:"المودة والمهارات", theme:"فن العشرة والمعايشة وتنمية الحب وآداب البيت."},
+    {n:4, title:"التأهيل الشامل", theme:"برامج متكاملة تجمع وتعمّق ما سبق."},
+    {n:5, title:"متقدّم وللرجوع", theme:"مواضيع جانبية أو لأوقات الأزمات."},
+  ];
+  const PRIO_AR = { high:"عالية", medium:"متوسطة", later:"لاحقًا" };
+  const PRIO_W  = { high:0, medium:1, later:2 };
+  const TYPE_ICON = { course:"🎓", book:"📖", pdf:"📄", article:"📰" };
+
+  async function renderJourneys(){
+    S.view="journeys"; S.resourceId=null;
+    el.innerHTML = pageTitle("الرحلة","منهج التأهيل على 6 مراحل متتابعة — ابدأ من فوق وانزل.") + `<div id="jBody"><div class="empty">…تحميل</div></div>`;
+    try{
+      const items = await api("GET","/resources");
+      const seeded = items.some(r=>r.seed);
+      let html = "";
+      if(!seeded){
+        html += `<div class="card"><div class="eyebrow">ابدأ الرحلة</div><h2>استورد المنهج</h2>
+          <p class="muted" style="margin-top:-6px">يُضاف لمكتبتكم منهج التأهيل (دورات + كتب) مرتّبًا على 6 مراحل بالأولوية — جاهز للحوار والقرارات. تقدروا تفتحوا أي مورد وتولّدوا أسئلة نقاش منه.</p>
+          <button class="btn accent" data-act="seedCurriculum">استورد المنهج</button></div>`;
+      }
+      for(const st of STAGES){
+        const inStage = items.filter(r=> Number(r.stage)===st.n)
+          .sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (a.createdAt-b.createdAt));
+        if(!inStage.length) continue;
+        const done = inStage.filter(r=>r.status==="completed").length;
+        html += `<div class="eyebrow" style="margin-top:24px">المرحلة ${st.n} · ${esc(st.title)}</div>
+          <p class="muted" style="margin:-2px 0 10px">${esc(st.theme)} — <b>${done}/${inStage.length}</b> مكتمل</p>`
+          + inStage.map(r=>`<div class="card res" data-open="${esc(r.id)}">
+              <div style="display:flex;gap:12px;align-items:center;flex:1;min-width:0">
+                <span style="font-size:22px;flex:none">${TYPE_ICON[r.type]||"📄"}</span>
+                <div style="min-width:0"><h2 style="margin:0;font-size:17px">${esc(r.title)}</h2>
+                <div class="meta">${r.speaker?esc(r.speaker)+" · ":""}${r.episodes?esc(r.episodes)+" حلقة":""}</div></div>
+              </div>
+              <div style="display:flex;gap:6px;flex:none;align-items:center">${r.priority?`<span class="pill warn">${PRIO_AR[r.priority]||esc(r.priority)}</span>`:""}<span class="pill dot ${r.status==='completed'?'':'warn'}">${STATE_AR[r.status]||esc(r.status)}</span></div>
+            </div>`).join("");
+      }
+      document.getElementById("jBody").innerHTML = html || `<div class="empty">مفيش موارد بمراحل بعد. استورد المنهج أو ضِف موردًا وحدّد مرحلته.</div>`;
+    }catch(e){ document.getElementById("jBody").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
+  }
 
   async function renderHome(){
     S.view="home"; S.resourceId=null;
@@ -619,6 +666,8 @@
 
       // ---- navigation to new pages ----
       if(act==="home"){ S.view="home"; render(); return; }
+      if(act==="journeys"){ S.view="journeys"; render(); return; }
+      if(act==="seedCurriculum"){ const r=await api("POST","/journey/seed"); toast(r.already? "المنهج مستورد بالفعل" : "تم استيراد "+r.seeded+" موردًا"); renderJourneys(); return; }
       if(act==="tasks"){ S.view="tasks"; render(); return; }
       if(act==="budget"){ S.view="budget"; render(); return; }
       if(act==="shopping"){ S.view="shopping"; render(); return; }
