@@ -77,12 +77,46 @@
   .brandcal{display:inline-flex; align-items:center; vertical-align:middle; margin-inline-start:9px; color:#00104a}
   .brandcal svg{height:22px; width:auto}
   [data-theme="dark"] .brandcal,[data-theme="oled"] .brandcal{color:#fff}
-  @media(max-width:560px){ .brandcal{display:none} }
-  /* ===== الهامبرجر + الدرّ هو المنيو على الموبايل والديسكتوب ===== */
+  /* الموبايل: اسم الشخص في نص الهدر */
+  @media(max-width:768px){
+    .bar{position:relative}
+    .mark{position:absolute; left:50%; transform:translateX(-50%); margin:0; gap:0}
+    .brandword, .mark small{display:none}
+    .brandcal{display:inline-flex !important; margin:0}
+    .brandcal svg{height:27px}
+  }
+  /* ===== الهامبرجر + الدرّ هو المنيو ===== */
   .hamburger{display:flex; align-items:center; justify-content:center; flex:none; background:var(--primary-soft); border:none; color:var(--ink); font-size:22px; cursor:pointer; width:42px; height:42px; border-radius:12px; line-height:1}
-  .hamburger:hover{background:var(--primary-soft); filter:brightness(.96)}
-  .bar-actions{display:none !important}
-  @media(min-width:769px){ .drawer{width:360px} .dw-link{font-size:17px; padding:14px 16px} }
+  .hamburger:hover{filter:brightness(.96)}
+  .bar-actions{display:none}
+  /* ===== الديسكتوب: كويك أكسيس + ثيم ===== */
+  @media(min-width:769px){
+    .bar-actions{display:flex; gap:6px; align-items:center}
+    .drawer{width:360px} .dw-link{font-size:17px; padding:14px 16px}
+  }
+  .qa{display:flex; gap:2px; align-items:center}
+  .qa-link{background:transparent; border:none; color:var(--ink); font-family:inherit; font-size:14px; font-weight:700; padding:8px 11px; border-radius:10px; cursor:pointer; white-space:nowrap}
+  .qa-link:hover{background:var(--primary-soft)}
+  .qa-link.on{background:var(--primary-soft); color:var(--primary-ink)}
+  .qa-theme{display:inline-flex; gap:3px; margin-inline-start:6px; padding-inline-start:8px; border-inline-start:1px solid var(--line)}
+  .qa-theme button{background:transparent; border:none; color:var(--ink); font-size:15px; width:34px; height:32px; border-radius:8px; cursor:pointer}
+  .qa-theme button:hover{background:var(--primary-soft)}
+  .qa-theme button.on{background:var(--primary-soft)}
+  /* ===== محوّل البلاي ليست + رؤوس الكاتيجوريز ===== */
+  .pl-seg{display:flex; gap:8px; margin:16px 0 6px}
+  .pl-seg button{flex:1; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 10px; border-radius:14px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink); font-family:inherit; font-size:15px; font-weight:700; cursor:pointer; transition:all .2s; white-space:nowrap}
+  .pl-seg button:hover{border-color:var(--brand-gold)}
+  .pl-seg button.on{background:linear-gradient(135deg,var(--brand-mid),var(--brand-deep)); color:#fff; border-color:transparent; box-shadow:0 6px 18px -8px rgba(14,59,46,.5)}
+  .pl-seg .pl-ic{font-size:14px; color:#e23} .pl-seg .pl-ic.tg{color:#2a7ab0} .pl-seg button.on .pl-ic{color:#fff}
+  .pl-seg .pl-n{background:rgba(0,0,0,.12); border-radius:99px; padding:1px 9px; font-size:13px} .pl-seg button.on .pl-n{background:rgba(255,255,255,.2)}
+  .cat-h{display:flex; align-items:center; gap:12px; margin:26px 0 12px; padding-bottom:10px; border-bottom:2px solid var(--line)}
+  .cat-ic{font-size:22px; width:46px; height:46px; flex:none; display:flex; align-items:center; justify-content:center; background:var(--gold-pale,#fdf5e0); border:1px solid var(--brand-gold); border-radius:13px}
+  .cat-t{font-size:17px; font-weight:800; color:var(--ink)}
+  .cat-s{font-size:12.5px; color:var(--muted); margin-top:2px}
+  .hintbox{background:var(--gold-pale,#fdf5e0); border:1px solid var(--line); border-radius:12px; padding:8px 14px; margin:10px 0 6px}
+  .hintbox summary{cursor:pointer; font-weight:700; color:var(--primary-ink); font-size:13.5px; padding:4px 0; list-style:none}
+  .hintbox summary::-webkit-details-marker{display:none}
+  [data-theme="dark"] .hintbox,[data-theme="oled"] .hintbox{background:rgba(201,161,74,.08)}
   /* ===== الدرج الجانبي (تقسيم زي زاد) ===== */
   .drawer-bg{position:fixed; inset:0; background:rgba(6,23,15,.55); backdrop-filter:blur(3px); opacity:0; pointer-events:none; transition:opacity .25s; z-index:998}
   .drawer-bg.open{opacity:1; pointer-events:auto}
@@ -222,7 +256,7 @@
 <header>
   <div class="bar">
     <button class="hamburger" data-dw="open" aria-label="القائمة">☰</button>
-    <div class="mark">سكن<span class="brandcal" id="brandName"></span><small>مساحتنا للتوافق</small></div>
+    <div class="mark"><span class="brandword">سكن</span><span class="brandcal" id="brandName"></span><small>مساحتنا للتوافق</small></div>
     <div class="bar-actions" id="barActions"></div>
   </div>
 </header>
@@ -347,7 +381,13 @@
   // ---------- header ----------
   function renderBar(){
     const b = document.getElementById("barActions");
-    if(b) b.innerHTML = "";   // النav بقى في الدرّ الجانبي
+    if(b){
+      if(S.token){
+        const QA=[["home","الرئيسية"],["journeys","قوائمنا"],["library","المكتبة"],["discussions","المناقشات"],["decisionlog","القرارات"]];
+        b.innerHTML = `<div class="qa">`+QA.map(([a,l])=>`<button class="qa-link ${S.view===a?'on':''}" data-act="${a}">${l}</button>`).join("")+`</div>`
+          + `<div class="qa-theme" role="group" aria-label="السمة"><button data-set-theme="light" title="فاتح">☀️</button><button data-set-theme="dark" title="داكن">🌙</button></div>`;
+      } else b.innerHTML = "";
+    }
     const bn = document.getElementById("brandName");
     if(bn){ const idx = S.token ? (/ضحى|ضحي/.test(S.name||"")?1:(/مصطف/.test(S.name||"")?2:0)) : 0; const src = idx? document.querySelector('#nameAssets [data-ni="'+idx+'"]') : null; bn.innerHTML = src? src.outerHTML : ""; }
     const hb = document.querySelector(".hamburger"); if(hb) hb.style.display = S.token ? "flex" : "none";
@@ -356,7 +396,7 @@
   }
   function markTheme(){
     const cur = document.documentElement.getAttribute("data-theme")||"light";
-    document.querySelectorAll(".themesw button").forEach(x=>x.classList.toggle("on", x.dataset.setTheme===cur));
+    document.querySelectorAll(".themesw button, .qa-theme button").forEach(x=>x.classList.toggle("on", x.dataset.setTheme===cur));
   }
   function applyTheme(t){
     document.documentElement.setAttribute("data-theme", t);
@@ -367,6 +407,7 @@
   // ---------- views ----------
   function render(){
     renderBar();
+    document.body.classList.toggle("pre-auth", !S.token);
     if(!S.token){ return renderOnboarding(); }
     if(S.view==="resource" && S.resourceId){ return renderResource(); }
     if(S.view==="home") return renderHome();
@@ -449,9 +490,10 @@
           <p class="muted" style="margin:2px 0 0;font-size:13px">${seeded?"المنهج مستورد. تقدر تعيد الاستيراد لإضافة أي جديد.":"استورد دورات وكتب التأهيل دفعة واحدة، جاهزة للحوار والقرارات."}</p></div>
         <button class="btn accent" data-act="seedCurriculum">${seeded?"تحديث المنهج":"استورد المنهج"}</button></div>`;
       // محوّل القائمة (يوتيوب / تيليجرام)
-      html += `<div class="themesw" role="group" aria-label="القائمة" style="margin:14px 0 4px">
-        <button class="${S.playlist==='youtube'?'on':''}" data-act="setPlaylist" data-pl="youtube">▶️ يوتيوب (${counts.youtube})</button>
-        <button class="${S.playlist==='telegram'?'on':''}" data-act="setPlaylist" data-pl="telegram">✈️ تيليجرام (${counts.telegram})</button></div>`;
+      html += `<div class="pl-seg" role="group" aria-label="القائمة">
+        <button class="${S.playlist==='youtube'?'on':''}" data-act="setPlaylist" data-pl="youtube"><span class="pl-ic">▶</span> يوتيوب <span class="pl-n">${counts.youtube}</span></button>
+        <button class="${S.playlist==='telegram'?'on':''}" data-act="setPlaylist" data-pl="telegram"><span class="pl-ic tg">✈</span> تيليجرام <span class="pl-n">${counts.telegram}</span></button></div>`;
+      html += `<p class="muted" style="margin:6px 2px 0;font-size:12.5px">📍 الشارة <b>أنا / شريكي</b> على كل مادة بتوريكم مين سمعها ووصل لفين.</p>`;
       const inList = items.filter(r=> srcOf(r)===S.playlist);
       if(!inList.length){
         html += `<div class="empty">مفيش موارد في قائمة ${S.playlist==='youtube'?'يوتيوب':'تيليجرام'} لسه.</div>`;
@@ -461,8 +503,7 @@
             .sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (a.order||999)-(b.order||999) || (a.createdAt-b.createdAt));
           if(!inCat.length) continue;
           const done = inCat.filter(r=> r.prog && r.prog.mine==='completed' && r.prog.partner==='completed').length;
-          html += `<div class="eyebrow" style="margin-top:22px">${c.ico} ${esc(c.title)}</div>
-            <p class="muted" style="margin:-2px 0 10px">${esc(c.theme)} — <b>${done}/${inCat.length}</b> خلّصناه معًا</p>`
+          html += `<div class="cat-h"><span class="cat-ic">${c.ico}</span><div><div class="cat-t">${esc(c.title)}</div><div class="cat-s">${esc(c.theme)} — <b>${done}/${inCat.length}</b> خلّصناه معًا</div></div></div>`
             + inCat.map(r=>`<div class="card res" data-open="${esc(r.id)}">
                 <div style="display:flex;gap:12px;align-items:center;flex:1;min-width:0">
                   <span style="font-size:22px;flex:none">${TYPE_ICON[r.type]||"📄"}</span>
@@ -605,86 +646,140 @@
       <div class="card"><div class="eyebrow">الحساب</div><div class="actions"><button class="btn ghost" data-act="logout">تسجيل الخروج</button></div></div>`;
   }
 
+  function authField(ico, id, type, ph, val, eye){
+    return `<div class="auth-field"><span class="af-ico">${ico}</span>`
+      + `<input id="${id}" type="${type}" ${type==='email'?'inputmode="email"':''} placeholder="${ph}" value="${val||''}">`
+      + (eye?`<button class="af-eye" data-act="togglePw" data-for="${id}" aria-label="إظهار">👁️</button>`:'')
+      + `</div>`;
+  }
   function renderOnboarding(){
+    const mode = S.authMode || "login";
     const em = esc(S.email||"");
-    el.innerHTML = `
-      <div class="center">
-        <h1 class="display">أهلًا بكما في سكن</h1>
-        <p class="lede">مساحتنا إحنا الاتنين بس: نحوّل اللي نقراه ونسمعه لفهم مشترك، وبعدين لقرار نتفق عليه.</p>
+    const tabs = `<div class="auth-tabs">
+      <button class="auth-tab ${mode==='login'?'on':''}" data-act="authMode" data-m="login">تسجيل الدخول</button>
+      <button class="auth-tab ${mode!=='login'?'on':''}" data-act="authMode" data-m="signup">حساب جديد</button></div>`;
+    let body;
+    if(mode==="login"){
+      body = authField("📧","emailL","email","الإيميل",em)
+        + authField("🔒","pwL","password","الباسوورد","",true)
+        + `<button class="auth-btn" data-act="login">دخول</button>`
+        + `<p class="auth-hint">أول مرة معانا؟ <a href="#" data-act="authMode" data-m="signup">اعمل حساب جديد</a></p>`;
+    } else if(mode==="join"){
+      body = `<p class="auth-hint" style="margin:0 0 12px">معاك كود من شريكك؟ ادخل بياناتك وانضم لنفس الميثاق.</p>`
+        + authField("🙂","nameJ","text","اسمك (مثلًا: ضحى)")
+        + authField("🔑","codeJ","text","كود الميثاق")
+        + authField("📧","emailJ","email","الإيميل")
+        + authField("🔒","pwJ","password","الباسوورد","",true)
+        + `<button class="auth-btn ghost" data-act="join">انضمام للميثاق</button>`
+        + `<p class="auth-hint"><a href="#" data-act="authMode" data-m="signup">← رجوع لإنشاء حساب جديد</a></p>`;
+    } else { // signup (first time, partner A)
+      body = `<p class="auth-hint" style="margin:0 0 12px">ابدأ مساحتكم، وهتاخد كود تشاركه مع شريكك لينضم.</p>`
+        + authField("🙂","nameC","text","اسمك (مثلًا: مصطفى)")
+        + authField("📧","emailC","email","الإيميل")
+        + authField("🔒","pwC","password","باسوورد (٤ حروف على الأقل)","",true)
+        + `<button class="auth-btn" data-act="create">إنشاء ميثاقنا</button>`
+        + `<p class="auth-hint">معاك كود شريكك؟ <a href="#" data-act="authMode" data-m="join">انضم بيه</a></p>`;
+    }
+    el.innerHTML = `<div class="auth">
+      <div class="auth-brand"><div class="auth-logo">سكن</div><p class="auth-tag">مساحتنا إحنا الاتنين بس — نتعلّم، نتناقش، ونتفق.</p></div>
+      <div class="auth-card">${tabs}${body}</div>
+      <p class="auth-foot">خاصّة بطبيعتها · من غير مشاركة عامة 🌿</p>
+      <button class="linkbtn auth-api" data-act="apiedit">تغيير عنوان الخادم</button>
+    </div>`;
+  }
 
-        <div class="card">
-          <div class="eyebrow">تسجيل الدخول</div>
-          <h2>رجعت تاني؟ ادخل لحسابك</h2>
-          <p class="muted" style="margin-top:-6px">نفس الإيميل والباسوورد بيرجّعوك لنفس بيتنا من أي جهاز.</p>
-          <div class="row"><label>الإيميل</label><input id="emailL" type="email" inputmode="email" autocomplete="username" placeholder="you@example.com" value="${em}"></div>
-          <div class="row"><label>الباسوورد</label><input id="pwL" type="password" autocomplete="current-password" placeholder="••••••••"></div>
-          <button class="btn" data-act="login">دخول</button>
-        </div>
+  const APP_URL = location.origin;
+  const NB_PROMPT = `أنت تعمل كمحلل محتوى خبير لمشروع «سكن»، نظام تشغيل خاص للأزواج يهدف لتعزيز التوافق (Alignment) عبر التعلّم المنظّم والنقاش الهادف وتوثيق القرارات. مهمتك: تحويل المحتوى المقدَّم (رابط فيديو أو نص) إلى معرفة منظّمة وقابلة للتطبيق ومحفّزة للنقاش بين الزوجين.
 
-        <div class="or">أول مرة؟</div>
+قواعد «سكن»: الزوجان أولًا · الخصوصية أساس · كل مورد يولّد نقاشًا · كل نقاش يولّد قرارًا · لا ميزات اجتماعية · القرارات أهم من الملاحظات.
 
-        <div class="card">
-          <div class="eyebrow">طرفٌ جديد</div>
-          <h2>ابدأ ميثاقنا الجديد</h2>
-          <p class="muted" style="margin-top:-6px">أنشئ المساحة، وهتاخد كود تشاركه مع شريكك لينضم.</p>
-          <div class="row"><label>اسمك</label><input id="nameC" type="text" placeholder="مثلًا: مصطفى"></div>
-          <div class="row"><label>الإيميل</label><input id="emailC" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
-          <div class="row"><label>الباسوورد</label><input id="pwC" type="password" autocomplete="new-password" placeholder="٤ حروف على الأقل"></div>
-          <button class="btn" data-act="create">إنشاء ميثاق</button>
-        </div>
+أخرِج بالضبط بهذا التنسيق (Markdown):
 
-        <div class="or">أو</div>
+## [عنوان الفيديو]
 
-        <div class="card">
-          <div class="eyebrow">انضمام</div>
-          <h2>عندك كود؟</h2>
-          <p class="muted" style="margin-top:-6px">أدخل الكود اللي شاركه معاك شريكك، واعمل حسابك.</p>
-          <div class="row"><label>اسمك</label><input id="nameJ" type="text" placeholder="مثلًا: ضحى"></div>
-          <div class="row"><label>كود الميثاق</label><input id="codeJ" type="text" placeholder="مثال: 4A4FF949" style="letter-spacing:2px; text-transform:uppercase"></div>
-          <div class="row"><label>الإيميل</label><input id="emailJ" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com"></div>
-          <div class="row"><label>الباسوورد</label><input id="pwJ" type="password" autocomplete="new-password" placeholder="٤ حروف على الأقل"></div>
-          <button class="btn ghost" data-act="join">انضمام</button>
-        </div>
+### 1. ملخص تحليلي مفصل
+(الفكرة المحورية، البنية الرئيسية، الحجج والأدلة، الخلاصة. حتى 300 كلمة.)
 
-        <div class="api-edit">
-          <div>الخادم: <span class="muted">${esc(API())}</span></div>
-          <button class="linkbtn" data-act="apiedit">تغيير عنوان الخادم</button>
-        </div>
-      </div>`;
+### 2. أهم الأفكار والدروس
+(7–10 نقاط، كل نقطة مبدأ يمكن للزوجين التأمل فيه وتطبيقه.)
+
+### 3. أسئلة للنقاش العميق بين الزوجين
+(5–7 أسئلة مفتوحة تشجّع على التأمل الذاتي، تبادل وجهات النظر، كشف التوقعات، تحديد التوافق/الاختلاف، والتخطيط. تجنّب أسئلة نعم/لا.)
+
+### 4. تطبيقات عملية متعددة الأوجه
+(5–8 تطبيقات: أفعال فردية، أنشطة زوجية مشتركة، ونقاط لاتخاذ القرار.)`;
+
+  function resCard(r){
+    return `<div class="card res" data-open="${esc(r.id)}">
+      <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
+        ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : `<span style="font-size:22px;flex:none">${TYPE_ICON[r.type]||"📄"}</span>` }
+        <div style="min-width:0"><h2 style="margin:0;font-size:17px">${ytMark(r)}${esc(r.title)}</h2><div class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.link?esc(r.link):"بدون رابط"}</div></div>
+      </div>
+      <div style="display:flex;gap:6px;flex:none;align-items:center">${r.priority?`<span class="pill warn">${PRIO_AR[r.priority]||esc(r.priority)}</span>`:""}${dualProg(r.prog)}</div>
+    </div>`;
+  }
+  function doSearch(q, items, questions, decisions){
+    const box=document.getElementById("searchResults"), list=document.getElementById("list"), lc=document.getElementById("libListWrap");
+    q=(q||"").trim().toLowerCase();
+    if(!q){ if(box) box.innerHTML=""; if(lc) lc.style.display=""; return; }
+    if(lc) lc.style.display="none";
+    const hit=(s)=> String(s||"").toLowerCase().includes(q);
+    const ri=items.filter(r=> hit(r.title)||hit(r.speaker)||hit(r.purpose)||hit(r.link));
+    const qi=(questions||[]).filter(x=> hit(x.text));
+    const di=(decisions||[]).filter(x=> hit(x.title)||hit(x.context)||hit(x.summary));
+    let html="";
+    if(ri.length) html += `<div class="eyebrow" style="margin-top:14px">موارد (${ri.length})</div>`+ri.map(resCard).join("");
+    if(qi.length) html += `<div class="eyebrow" style="margin-top:16px">أسئلة نقاش (${qi.length})</div>`+qi.map(x=>`<div class="card res" data-openq="${esc(x.resourceId)}"><div style="flex:1;min-width:0">💬 ${esc(x.text)}</div></div>`).join("");
+    if(di.length) html += `<div class="eyebrow" style="margin-top:16px">قرارات (${di.length})</div>`+di.map(x=>`<div class="card res" data-act="decisionlog"><div style="flex:1;min-width:0">✅ ${esc(x.title||x.context||"قرار")}</div></div>`).join("");
+    if(!html) html = `<div class="empty" style="margin-top:12px">مفيش نتائج لـ «${esc(q)}».</div>`;
+    if(box) box.innerHTML = html;
   }
 
   async function renderLibrary(){
     S.view="library"; S.resourceId=null;
-    el.innerHTML = `<h1 class="display">المكتبة</h1><p class="lede">كل ما نعمل عليه معًا، في مكانٍ واحد.</p><div id="list"><div class="empty">…تحميل</div></div>
-      <div class="card">
-        <div class="eyebrow">استيراد سريع</div>
-        <h2>أضِف عدة روابط دفعة واحدة</h2>
-        <p class="muted" style="margin-top:-6px">الصق الروابط — رابط في كل سطر (يوتيوب، قوائم تشغيل، أي رابط).</p>
-        <div class="row"><textarea id="bulk" placeholder="https://...&#10;https://...&#10;https://..." style="min-height:130px"></textarea></div>
-        <button class="btn" data-act="importBulk">استورد الكل</button>
-      </div>
-      <div class="card">
-        <div class="eyebrow">إضافة</div>
-        <h2>أضِف موردًا</h2>
-        <div class="row"><label>العنوان</label><input id="rTitle" type="text" placeholder="مثلًا: محاضرة عن الميثاق الغليظ"></div>
-        <div class="row"><label>الرابط (اختياري)</label><input id="rLink" type="text" placeholder="https://..."></div>
-        <div class="row"><label>نص المصدر (لتوليد الملخص والأسئلة)</label><textarea id="rText" placeholder="الصق هنا النص أو أهم النقاط من المورد…"></textarea></div>
-        <button class="btn" data-act="addRes">أضِف</button>
-      </div>`;
-    try{
-      const items = await api("GET","/resources");
-      items.sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (hasYt(b)-hasYt(a)) || (b.createdAt-a.createdAt));
-      const list = document.getElementById("list");
-      if(!items.length){ list.innerHTML = `<div class="empty">لسه مفيش موارد. ضيف أول مورد بالأسفل ونبدأ.</div>`; return; }
-      list.innerHTML = items.map(r=>`
-        <div class="card res" data-open="${esc(r.id)}">
-          <div style="display:flex;gap:14px;align-items:center;flex:1;min-width:0">
-            ${ r.thumbnail ? `<img src="${esc(r.thumbnail)}" alt="" loading="lazy" style="width:104px;height:62px;object-fit:cover;border-radius:10px;flex:none">` : "" }
-            <div style="min-width:0"><h2 style="margin:0">${ytMark(r)}${esc(r.title)}</h2><div class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.link?esc(r.link):"بدون رابط"}</div></div>
+    el.innerHTML = pageTitle("المكتبة","كل موادنا في مكان واحد — دوّر، أضِف، وتابعوا تقدّم بعض.")
+    + `<div class="card"><div class="eyebrow">بحث في كل حاجة</div>
+        <div class="row" style="margin-top:4px"><input id="libSearch" type="search" placeholder="دوّر في الموارد، أسئلة النقاش، والقرارات…"></div>
+        <div id="searchResults"></div></div>`
+    + `<div class="card"><div class="eyebrow">إضافة</div><h2 style="margin:2px 0 0">أضِف موردًا</h2>
+        <details class="hintbox">
+          <summary>إزاي نجهّز المورد بالظبط؟ (NotebookLM)</summary>
+          <ol style="margin:10px 0 0; padding-inline-start:20px; line-height:2; font-size:13.5px">
+            <li>افتح <b>NotebookLM</b> وحط رابط الفيديو كـ <b>Source</b>.</li>
+            <li>اضغط «انسخ البرومت» تحت والصقه في NotebookLM.</li>
+            <li>هيطلّعلك: ملخّص + أهم الأفكار + أسئلة نقاش + تطبيقات عملية.</li>
+            <li>الصق كل قسم في خانته تحت — وهنحفظهم جاهزين للحوار والقرار.</li>
+          </ol>
+          <div class="actions" style="margin-top:10px; gap:8px; flex-wrap:wrap">
+            <button class="btn soft sm" data-act="copyPrompt">📋 انسخ البرومت</button>
+            <a class="btn ghost sm" href="https://notebooklm.google.com" target="_blank" rel="noopener">افتح NotebookLM ↗</a>
+            <button class="btn ghost sm" data-act="copyAppUrl">🔗 انسخ رابط التطبيق</button>
           </div>
-          <div style="display:flex;gap:6px;flex:none;align-items:center">${r.priority?`<span class="pill warn">${PRIO_AR[r.priority]||esc(r.priority)}</span>`:""}${dualProg(r.prog)}</div>
-        </div>`).join("");
-    }catch(e){ document.getElementById("list").innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
+        </details>
+        <div class="row"><label>العنوان</label><input id="rTitle" type="text" placeholder="مثلًا: حتى ترضى"></div>
+        <div class="row"><label>الرابط (يوتيوب / تيليجرام)</label><input id="rLink" type="text" placeholder="https://..."></div>
+        <div class="row"><label>الملخّص</label><textarea id="rSummary" placeholder="الصق الملخّص من NotebookLM…"></textarea></div>
+        <div class="row"><label>أهم الأفكار <span class="muted">(سطر لكل فكرة)</span></label><textarea id="rInsights" placeholder="فكرة في كل سطر…"></textarea></div>
+        <div class="row"><label>أسئلة النقاش <span class="muted">(سطر لكل سؤال)</span></label><textarea id="rQuestions" placeholder="سؤال في كل سطر…"></textarea></div>
+        <div class="row"><label>تطبيقات عملية <span class="muted">(سطر لكل تطبيق)</span></label><textarea id="rApps" placeholder="تطبيق في كل سطر…"></textarea></div>
+        <button class="btn" data-act="addRes">أضِف المورد</button></div>`
+    + `<div id="libListWrap">
+        <div class="eyebrow" style="margin-top:24px">موادنا <span class="muted" id="libCount"></span></div>
+        <p class="muted" style="margin:-2px 0 10px;font-size:13px">الشارة <b>أنا / شريكي</b> بتوريكم مين سمع إيه ووصل لفين.</p>
+        <div id="list"><div class="empty">…تحميل</div></div></div>`
+    + `<details class="card" style="margin-top:18px"><summary style="cursor:pointer;font-weight:700;color:var(--primary-ink)">استيراد سريع لروابط كتير</summary>
+        <p class="muted" style="margin-top:8px;font-size:13px">رابط في كل سطر.</p>
+        <div class="row"><textarea id="bulk" placeholder="https://...&#10;https://..." style="min-height:110px"></textarea></div>
+        <button class="btn ghost" data-act="importBulk">استورد الكل</button></details>`;
+    try{
+      const [items, questions, decisions] = await Promise.all([api("GET","/resources"), api("GET","/questions").catch(()=>[]), api("GET","/decisions").catch(()=>[])]);
+      items.sort((a,b)=> (PRIO_W[a.priority]??1)-(PRIO_W[b.priority]??1) || (hasYt(b)-hasYt(a)) || (b.createdAt-a.createdAt));
+      const cnt=document.getElementById("libCount"); if(cnt) cnt.textContent="("+items.length+")";
+      const list=document.getElementById("list");
+      if(list) list.innerHTML = items.length ? items.map(resCard).join("") : `<div class="empty">لسه مفيش موارد. استورد المنهج من «قوائمنا» أو ضيف مورد فوق.</div>`;
+      const si=document.getElementById("libSearch");
+      if(si) si.addEventListener("input", ()=> doSearch(si.value, items, questions||[], decisions||[]));
+    }catch(e){ const l=document.getElementById("list"); if(l) l.innerHTML = `<div class="empty">${esc(errMsg(e))}</div>`; }
   }
 
   async function renderResource(){
@@ -993,6 +1088,8 @@
   // ---------- actions ----------
   async function go(act, node){
     try{
+      if(act==="authMode"){ S.authMode=node.dataset.m; renderOnboarding(); return; }
+      if(act==="togglePw"){ const i=document.getElementById(node.dataset.for); if(i){ i.type = i.type==="password"?"text":"password"; node.textContent = i.type==="password"?"👁️":"🙈"; } return; }
       if(act==="apiedit"){
         const v = prompt("عنوان الخادم (API base):", API());
         if(v){ localStorage.setItem("sakan_api", v.trim().replace(/\/$/,"")); render(); }
@@ -1038,10 +1135,15 @@
         const title=(document.getElementById("rTitle").value||"").trim();
         if(!title) return toast("اكتب عنوان المورد");
         const link=(document.getElementById("rLink").value||"").trim();
-        const sourceText=(document.getElementById("rText").value||"").trim();
-        await api("POST","/resources",{ title, link:link||null, sourceText:sourceText||null });
-        toast("أُضيف المورد"); renderLibrary(); return;
+        const summary=(document.getElementById("rSummary").value||"").trim();
+        const insights=(document.getElementById("rInsights").value||"").trim();
+        const questions=(document.getElementById("rQuestions").value||"").trim();
+        const applications=(document.getElementById("rApps").value||"").trim();
+        await api("POST","/resources/full",{ title, link:link||null, summary, insights, questions, applications });
+        toast("أُضيف المورد ✦"); renderLibrary(); return;
       }
+      if(act==="copyPrompt"){ try{ await navigator.clipboard.writeText(NB_PROMPT); toast("اتنسخ البرومت ✦"); }catch(e){ toast("منعرفش ننسخ — حدّده يدوي"); } return; }
+      if(act==="copyAppUrl"){ try{ await navigator.clipboard.writeText(APP_URL); toast("اتنسخ رابط التطبيق"); }catch(e){} return; }
       if(act==="importBulk"){
         const lines=(document.getElementById("bulk").value||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
         if(!lines.length) return toast("الصق رابطًا واحدًا على الأقل");
