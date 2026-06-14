@@ -147,10 +147,12 @@
   :root{ --auth-img:url('/media/auth-bg.jpg'); }
   body.pre-auth{
     background:
-      linear-gradient(180deg, rgba(6,20,13,.28) 0%, rgba(6,20,13,.50) 52%, rgba(6,20,13,.80) 100%),
-      var(--auth-img, linear-gradient(165deg,#0b3024,#1a5d47)),
-      #0b3024;
-    background-size: cover, cover, auto;
+      linear-gradient(180deg, rgba(6,20,13,.28) 0%, rgba(6,20,13,.48) 52%, rgba(6,20,13,.80) 100%),
+      var(--auth-img, none),
+      radial-gradient(circle 540px at 84% -8%, rgba(201,161,74,.22), transparent 60%),
+      radial-gradient(circle 680px at 2% 108%, rgba(42,122,95,.30), transparent 60%),
+      linear-gradient(165deg,#0b3024 0%, #134135 55%, #0b3024 100%);
+    background-size: cover, cover, auto, auto, auto;
     background-position: center center;
     background-repeat: no-repeat;
     background-attachment: fixed;
