@@ -1,7 +1,11 @@
 {
-  "framework": null,
-  "buildCommand": "",
-  "outputDirectory": ".",
+  "version": 2,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
