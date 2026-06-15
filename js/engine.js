@@ -1,6 +1,12 @@
 /* engine.js — محرّك سكن (core + pages1 + pages2 مدموجين). نفس منطق المشروع القديم بالظبط. */
 "use strict";
 
+// منع أي نموذج من إعادة تحميل الصفحة (حماية إضافية)
+document.addEventListener('submit', function(e) {
+  e.preventDefault();
+  return false;
+}, true);
+
 (function(){
   "use strict";
 
@@ -633,7 +639,7 @@
       <div class="card">
         <div class="eyebrow">قفل الجهاز 🔐</div>
         <p class="muted" style="margin-top:-6px">
-          ${pinSet ? `كود PIN مفعّل على الجهاز ده${whoName?" ("+whoName+")":" "}.` : "مفيش كود PIN على الجهاز ده — الأب مكشوف لأي حد."}
+          ${pinSet ? `كود PIN مفعّل على الجهاز ده${whoName?" ("+whoName+"): ":" "}.` : "مفيش كود PIN على الجهاز ده — الأب مكشوف لأي حد."}
         </p>
         <div class="actions" style="flex-wrap:wrap;gap:8px;margin-top:10px">
           <button class="btn sm" data-act="setupPin">${pinSet?"تغيير الكود":"إعداد كود PIN"}</button>
@@ -653,6 +659,7 @@
       + (eye?`<button class="af-eye" data-act="togglePw" data-for="${id}" aria-label="إظهار">👁️</button>`:'')
       + `</div>`;
   }
+  
   function renderOnboarding(){
     const mode = S.authMode || "login";
     const em = esc(S.email||"");
@@ -663,7 +670,7 @@
     if(mode==="login"){
       body = authField("📧","emailL","email","الإيميل",em)
         + authField("🔒","pwL","password","الباسوورد","",true)
-        + `<button class="auth-btn" data-act="login">دخول</button>`
+        + `<button type="button" class="auth-btn" data-act="login">دخول</button>`
         + `<p class="auth-hint">أول مرة معانا؟ <a href="#" data-act="authMode" data-m="signup">اعمل حساب جديد</a></p>`;
     } else if(mode==="join"){
       body = `<p class="auth-hint" style="margin:0 0 12px">معاك كود من شريكك؟ ادخل بياناتك وانضم لنفس الميثاق.</p>`
@@ -671,14 +678,14 @@
         + authField("🔑","codeJ","text","كود الميثاق")
         + authField("📧","emailJ","email","الإيميل")
         + authField("🔒","pwJ","password","الباسوورد","",true)
-        + `<button class="auth-btn ghost" data-act="join">انضمام للميثاق</button>`
+        + `<button type="button" class="auth-btn ghost" data-act="join">انضمام للميثاق</button>`
         + `<p class="auth-hint"><a href="#" data-act="authMode" data-m="signup">← رجوع لإنشاء حساب جديد</a></p>`;
     } else { // signup (first time, partner A)
       body = `<p class="auth-hint" style="margin:0 0 12px">ابدأ مساحتكم، وهتاخد كود تشاركه مع شريكك لينضم.</p>`
         + authField("🙂","nameC","text","اسمك (مثلًا: مصطفى)")
         + authField("📧","emailC","email","الإيميل")
         + authField("🔒","pwC","password","باسوورد (٤ حروف على الأقل)","",true)
-        + `<button class="auth-btn" data-act="create">إنشاء ميثاقنا</button>`
+        + `<button type="button" class="auth-btn" data-act="create">إنشاء ميثاقنا</button>`
         + `<p class="auth-hint">معاك كود شريكك؟ <a href="#" data-act="authMode" data-m="join">انضم بيه</a></p>`;
     }
     el.innerHTML = `<div class="auth">
@@ -1410,4 +1417,3 @@
   document.getElementById("foot").innerHTML = "سكن · مساحتنا إحنا الاتنين — خاصّة بطبيعتها، من غير مشاركة عامة.";
   render();
 })();
-
